@@ -1,0 +1,13 @@
+{
+  "sys_cfg": {
+    "ros_node_name": "pilot_dlp_usharing_dlp_node",
+    "car_type": "s31",
+    "log_cfg": {
+      "console_out": true,
+      "log_level": 2,
+      "open_roslog": false,
+      "fileMaxSize": 100,
+      "fileNum": 3
+    }
+  }
+}

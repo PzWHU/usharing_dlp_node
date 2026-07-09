@@ -1,0 +1,285 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "lidar_gop"
+is_pub_result: true
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "/opt/senseauto_active/senseauto-perception-camera/resource/config/SENSEAD.lic"
+}
+
+vehicle_param {
+    sensor_config_folder: "/opt/senseauto_active/senseauto-vehicle-config/vehicle/A02-528"
+}
+
+operators{
+    name: "SPETRPreprocessVDOP_gop"
+    type: "SPETRPreprocessVDOP"
+    top: "SPETRPredictorOP_Head_gop"
+    spetr_e2e_preprocess_param {
+      camera_names: [
+                      "center_camera_fov30",
+                      "center_camera_fov120"
+                      ]
+      img_height: 576
+      img_width: 1024
+      adjust_extrinsic:false
+      camera_2_fix_center: [0, 0, 1, 2.0, -1, 0, 0, 0, 0, -1, 0, 1.5, 0, 0, 0, 1]
+      position_range: [-5.0, -25.48, -10.0, 107.4, 25.48, 8.0]
+      pc_range: [0, -25.48, -5.0, 102.4, 20.48, 3.0]
+      coords_h: 18
+      coords_w: 32
+      coords_d: 64
+      embed_dims: 256
+      num_query: 128
+      memory_len: 4
+      topk_proposals: 64
+      num_propagated: 64
+      folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+      input_coords_file: "_coords_gop.txt"
+      input_pseudo_ref_pts_file: "_pseudo_ref_pts_gop.txt"
+      last_embedding_data_name: "last_embedding_gop"
+      last_ref_pts_data_name: "last_ref_pts_gop"
+      last_velo_data_name: "last_velo_gop"
+      coords3d_input_name: "coords3d_gop"
+      cone_input_name: "cone_gop"
+      mem_embedding_input_name: "memory_embedding_gop"
+      mem_velo_input_name: "memory_velo_gop"
+      mem_ref_pts_input_name: "memory_reference_point_gop"
+      mem_time_input_name: "memory_timestamp_gop"
+      mem_egopose_input_name: "memory_egopose_gop"
+      lidar2img_name: "lidar2img_gop"
+      intrinsics_name: "intrinsics_gop"
+      extrinsics_name: "extrinsics_gop"
+    }
+}
+
+operators {
+    name: "GeneralPredictorOP_gop_rpn"
+    type: "NVGeneralPredictorOP"
+    top: "PPHeavyRpnPostProcess_gop"
+    general_predictor_param {
+        gpu_id: 0
+        dnn_param {
+        model_folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+        model_file: "gop_driving_sparse_head.bin"
+        model_weight: ""
+        model_config: "gop_driving_sparse_head_parameters.json"
+        }
+        net_input_name: "spatial_features_2d_lidar_gop_driving"
+        data_input_name: "spatial_features_2d_lidar"
+        src_image_type: FLOAT32
+    }
+    execute_priority: -1
+}
+
+###### spetr GeneralInputSetupOP
+operators {
+    name: "GeneralInputSetupOP_gop"
+  type: "GeneralInputSetupOP"
+  top: "PPHeavyRpnPostProcess_gop"
+  general_input_setup_param {
+    output_convert_param {   # for pvb
+      predictor_name: "GeneralPredictorOP_lidar_branch_sim"
+      net_output_name: "spatial_features_2d_pvb"
+      data_input_name: "spatial_features_2d_pvb"
+      data_input_shape: [1, 128, 320, 96]
+    }
+  }
+}
+
+operators {
+  name: "PPHeavyRpnPostProcess_gop"
+  type: "PPHeavyRpnPostProcessOP"
+  top: "SPETRPredictorOP_Head_gop"
+  bev_fusion_post_process_param {
+    predictor_name: "GeneralPredictorOP_gop_rpn"
+    cls_tensor_name: "det_pred_dicts_fusion_gop_driving_cls"
+    reg_tensor_name: "det_pred_dicts_fusion_gop_driving_final_box"
+    dir_tensor_name: "det_pred_dicts_fusion_gop_driving_dir_cls"
+    spatial_features_tensor_name: "spatial_features_2d_pvb"
+    seg_tensor: "seg_pred"  # no use
+    dump_segment_filename: ""
+    lidar_name: "stitching_lidar"
+    unkown_obj_switch: true
+    lidar_object_valid_num_name: "lidar_gop_valid_num"
+    lidar_object_max_num: 64
+    is_pvb: false
+    query_feats_name: "query_feats_gop"
+    query_xyz_name: "query_xyz_gop"
+    query_pred_name: "query_pred_gop"
+    voxel_feats_name: "voxel_feats_gop"
+  }
+}
+
+
+# spetr head
+operators{
+    name: "SPETRPredictorOP_Head_gop"
+    type: "NVGeneralPredictorOP"
+    top: "SPETRPostProcessVDOP_gop"
+    general_predictor_param {
+      gpu_id: 0
+      dnn_param {
+        model_folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+        model_file: "gop_head.bin"
+        model_weight: ""
+        model_config: "gop_head_parameters.json"
+      }
+      net_input_name: [
+        "img_feats_0",
+        "img_feats_1",
+        "img_feats_2",
+        "img_feats_3",
+        "memory_timestamp",
+        "memory_egopose",
+        "memory_embedding_0",
+        "memory_embedding_1",
+        "memory_embedding_2",
+        "memory_embedding_3",
+        "memory_reference_point_0",
+        "memory_reference_point_1",
+        "memory_reference_point_2",
+        "memory_reference_point_3",
+        "memory_velo_0",
+        "memory_velo_1",
+        "memory_velo_2",
+        "memory_velo_3",
+        "intrinsics",
+        "extrinsics",
+        "lidar2img",
+        "query_feats",
+        "query_xyz",
+        "query_pred"
+      ]
+      data_input_name: [
+        "img_feats_0_gop",
+        "img_feats_1_gop",
+        "img_feats_2_gop",
+        "img_feats_3_gop",
+        "memory_timestamp_gop",
+        "memory_egopose_gop",
+        "memory_embedding_gop_0",
+        "memory_embedding_gop_1",
+        "memory_embedding_gop_2",
+        "memory_embedding_gop_3",
+        "memory_reference_point_gop_0",
+        "memory_reference_point_gop_1",
+        "memory_reference_point_gop_2",
+        "memory_reference_point_gop_3",
+        "memory_velo_gop_0",
+        "memory_velo_gop_1",
+        "memory_velo_gop_2",
+        "memory_velo_gop_3",
+        "intrinsics_gop",
+        "extrinsics_gop",
+        "lidar2img_gop",
+        "query_feats_gop",
+        "query_xyz_gop",
+        "query_pred_gop"
+      ]
+      padding_shape_from_3_to_4: true
+      src_image_type: FLOAT32
+      trt_plugin_infos {
+        library_path: "/opt/senseauto_active/senseauto-perception-camera/resource/models/x86/trt_plugin/libmsda.so"
+        plugin_name: "MSDA"
+      }
+    }
+    execute_priority: -2
+}
+
+###### spetr postprocess
+operators {
+  name: "SPETRPostProcessVDOP_gop"
+  type: "SPETRPostProcessVDOP"
+  top: "BevFusionGOPTrackingOP"
+  spetr_postprocess_param {
+    camera_names: [
+                    "center_camera_fov30",
+                    "center_camera_fov120"
+                    ]
+    use_subtype: false
+    adjust_extrinsic: false
+    score_is_nhwc: true
+    bbox_is_nhwc: true
+    adjust_camera_name: "center_camera_fov120"
+    camera_2_fix_center: [0, 0, 1, 2.0, -1, 0, 0, 0, 0, -1, 0, 1.5, 0, 0, 0, 1]
+    decode_from_reg: false
+    ref_pt_3d_intput_name: "memory_reference_point_0"
+    folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+    input_ref_pts_file: "_ref_pts.txt"
+    pc_range: [0, -20.48, -5.0, 102.4, 20.48, 3.0]
+    predictor_name: "SPETRPredictorOP_Head_gop"
+    conf_thresh: 0.3
+    embedding_data_name: "last_embedding_gop"
+    ref_pts_data_name: "last_ref_pts_gop"
+    velo_data_name: "last_velo_gop"
+    lidar_num_query: 64
+    topk_proposals: 64
+    sensor_name: "nv_cameras_gop"
+    use_roi_enhancement: false
+    roi_enhancement_param {
+      min_x: -10
+      max_x: 10
+      min_y: -6
+      max_y: 6
+      score: 0.09
+    }
+    lidar_object_max_num: 64
+    is_pvb: false
+    lidar_object_valid_num_name: "lidar_gop_valid_num"
+    use_nms: false
+    model_with_sigmoid: false
+    nms_param_3d {
+      object_label: "VEHICLE"
+      conf_thresh: 0.05
+      nms_thresh: 0.2
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_label: "BIKE"
+      conf_thresh: 0.2
+      nms_thresh: 0.001
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_label: "PEDESTRIAN"
+      conf_thresh: 0.09
+      nms_thresh: 0.001
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "VEHICLE"
+      conf_thresh: 0.01
+      nms_thresh: 0.7
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "BIKE"
+      conf_thresh: 0.01
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "PEDESTRIAN"
+      conf_thresh: 0.01
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+  }
+}
+
+operators {
+    name: "BevFusionGOPTrackingOP"
+    type: "BevFusionGOPTrackingOP"
+
+    bev_fusion_gop_tracking_param {
+
+    }
+}

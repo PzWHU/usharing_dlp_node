@@ -1,0 +1,30 @@
+{
+  "usharing_dlp_node": {
+    "resource_root_path": "./resource/",
+    "sensor_config_folder": "./",
+    "sensor_config_root_path": "/param/calib/",
+    "camera_names": [
+      "center_camera_fov120",
+      "center_camera_fov30",
+      "left_front_camera",
+      "right_front_camera",
+      "left_rear_camera",
+      "right_rear_camera",
+      "rear_camera"
+    ],
+    "cameras_fps": [20, 20, 10, 10, 10, 10, 10],
+    "opencv_thread_num": 1,
+    "single_thread": false,
+    "replay_mode": false,
+    "vpc_channel": 0,
+    "pipelines": [
+      {
+        "publisher_module_name": "planning",
+        "camera_name": "nv_cameras",
+        "pipeline_param_file": "./config/perception_camera/nvidia/vd_dlp/camera_bev_v9_7_ep12_dlp.prototxt",
+        "infer_device_id": 0,
+        "infer_ai_core_group_id": 0
+      }
+    ]
+  }
+}

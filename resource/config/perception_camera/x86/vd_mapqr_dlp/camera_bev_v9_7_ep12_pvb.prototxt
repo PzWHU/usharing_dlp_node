@@ -1,0 +1,554 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "road_user_nv"
+is_pub_result: true
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "/opt/senseauto_active/senseauto-perception-camera/resource/config/SENSEAD.lic"
+}
+
+vehicle_param {
+    sensor_config_folder: "/opt/senseauto_active/senseauto-vehicle-config/vehicle/A02-528"
+}
+
+operators{
+    name: "SPETRPreprocessVDOP"
+    type: "SPETRPreprocessVDOP"
+    top: "SPETRPredictorOP_Head"
+    spetr_e2e_preprocess_param {
+      camera_names: [
+                      "center_camera_fov30",
+                      "center_camera_fov120",
+                      "left_front_camera",
+                      "left_rear_camera",
+                      "rear_camera",
+                      "right_rear_camera",
+                      "right_front_camera"]
+      img_height: 576
+      img_width: 1024
+      adjust_extrinsic:false
+      camera_2_fix_center: [0, 0, 1, 2.0, -1, 0, 0, 0, 0, -1, 0, 1.5, 0, 0, 0, 1]
+      position_range: [-110, -60, -10.0, 210, 60, 10.0]
+      pc_range: [-100, -50, -5.0, 200, 50, 3.0]
+      coords_h: 18
+      coords_w: 32
+      coords_d: 64
+      embed_dims: 256
+      num_query: 256
+      memory_len: 4
+      topk_proposals: 128
+      num_propagated: 128
+      folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+      input_coords_file: "_coords.txt"
+      input_pseudo_ref_pts_file: "_pseudo_ref_pts.txt"
+      last_embedding_data_name: "last_embedding"
+      last_ref_pts_data_name: "last_ref_pts"
+      last_velo_data_name: "last_velo"
+      coords3d_input_name: "coords3d"
+      cone_input_name: "cone"
+      mem_embedding_input_name: "pvb_memory_embedding"
+      mem_velo_input_name: "pvb_memory_velo"
+      mem_ref_pts_input_name: "pvb_memory_reference_point"
+      mem_time_input_name: "pvb_memory_timestamp"
+      mem_egopose_input_name: "pvb_memory_egopose"
+      lidar2img_name: "pvb_lidar2img"
+      intrinsics_name: "pvb_intrinsics"
+      extrinsics_name: "pvb_extrinsics"
+    }
+}
+
+operators {
+  name: "PPHeavyRpnPostProcess"
+  type: "PPHeavyRpnPostProcessOP"
+  top: "SPETRPredictorOP_Head"
+  bev_fusion_post_process_param {
+    predictor_name: "GeneralPredictorOP_lidar_branch_sim"
+    cls_tensor_name: "rpn_cls_preds"
+    reg_tensor_name: "final_box_dicts"
+    dir_tensor_name: "rpn_dir_cls_preds"
+    spatial_features_tensor_name: "spatial_features_2d_pvb"
+    seg_tensor: "seg_pred"  # no use
+    dump_segment_filename: ""
+    lidar_name: "stitching_lidar"
+    unkown_obj_switch: true
+    lidar_object_max_num: 100
+    query_feats_name: "pvb_query_feats"
+    query_xyz_name: "pvb_query_xyz"
+    query_pred_name: "pvb_query_pred"
+    voxel_feats_name: "pvb_voxel_feats"
+  }
+}
+
+# spetr head
+operators{
+    name: "SPETRPredictorOP_Head"
+    type: "NVGeneralPredictorOP"
+        top: "SPETRPostProcessVDOP"
+    general_predictor_param {
+      gpu_id: 0
+      dnn_param {
+        model_folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+        model_file: "pvb_head.bin"
+        model_weight: ""
+        model_config: "pvb_head_parameters.json"
+      }
+      net_input_name: [
+        "img_feats_0",
+        "img_feats_1",
+        "img_feats_2",
+        "img_feats_3",
+        "pvb_memory_timestamp",
+        "pvb_memory_egopose",
+        "pvb_memory_embedding_0",
+        "pvb_memory_embedding_1",
+        "pvb_memory_embedding_2",
+        "pvb_memory_embedding_3",
+        "pvb_memory_reference_point_0",
+        "pvb_memory_reference_point_1",
+        "pvb_memory_reference_point_2",
+        "pvb_memory_reference_point_3",
+        "pvb_memory_velo_0",
+        "pvb_memory_velo_1",
+        "pvb_memory_velo_2",
+        "pvb_memory_velo_3",
+        "pvb_intrinsics",
+        "pvb_extrinsics",
+        "pvb_lidar2img",
+        "pvb_query_feats",
+        "pvb_query_xyz",
+        "pvb_query_pred"
+      ]
+      data_input_name: [
+        "img_feats_0",
+        "img_feats_1",
+        "img_feats_2",
+        "img_feats_3",
+        "pvb_memory_timestamp",
+        "pvb_memory_egopose",
+        "pvb_memory_embedding_0",
+        "pvb_memory_embedding_1",
+        "pvb_memory_embedding_2",
+        "pvb_memory_embedding_3",
+        "pvb_memory_reference_point_0",
+        "pvb_memory_reference_point_1",
+        "pvb_memory_reference_point_2",
+        "pvb_memory_reference_point_3",
+        "pvb_memory_velo_0",
+        "pvb_memory_velo_1",
+        "pvb_memory_velo_2",
+        "pvb_memory_velo_3",
+        "pvb_intrinsics",
+        "pvb_extrinsics",
+        "pvb_lidar2img",
+        "pvb_query_feats",
+        "pvb_query_xyz",
+        "pvb_query_pred"
+      ]
+      padding_shape_from_3_to_4: true
+      src_image_type: FLOAT32
+      trt_plugin_infos {
+        library_path: "/opt/senseauto_active/senseauto-perception-camera/resource/models/x86/trt_plugin/libmsda.so"
+        plugin_name: "MSDA"
+      }
+
+    }
+    execute_priority: -2
+}
+
+###### spetr postprocess
+operators {
+  name: "SPETRPostProcessVDOP"
+  type: "SPETRPostProcessVDOP"
+  top: "NVMOTOP_1"
+  spetr_postprocess_param {
+    camera_names: [
+                    "center_camera_fov30",
+                    "center_camera_fov120",
+                    "left_front_camera",
+                    "left_rear_camera",
+                    "rear_camera",
+                    "right_rear_camera",
+                    "right_front_camera"]
+    use_subtype: true
+    adjust_extrinsic: false
+    score_is_nhwc: true
+    bbox_is_nhwc: true
+    adjust_camera_name: "center_camera_fov120"
+    camera_2_fix_center: [0, 0, 1, 2.0, -1, 0, 0, 0, 0, -1, 0, 1.5, 0, 0, 0, 1]
+    decode_from_reg: false
+    ref_pt_3d_intput_name: "pvb_memory_reference_point_0"
+    folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+    input_ref_pts_file: "_ref_pts.txt"
+    pc_range: [-100, -50, -5.0, 200, 50, 3.0]
+    predictor_name: "SPETRPredictorOP_Head"
+    conf_thresh: 0.2
+    embedding_data_name: "last_embedding"
+    ref_pts_data_name: "last_ref_pts"
+    velo_data_name: "last_velo"
+    lidar_num_query: 100
+    topk_proposals: 128
+    sensor_name: "nv_cameras"
+    use_roi_enhancement: true
+    score_name: "pvb_score"
+    bbox_name: "pvb_bbox"
+    embedding_name: "pvb_embedding"
+    pred_traj_name: "pvb_pred_traj"
+    object_light_name: "pvb_object_light"
+    object_dead_name: "pvb_object_dead"
+    object_cutin_name: "pvb_object_cut"
+    roi_enhancement_param {
+      min_x: -10
+      max_x: 10
+      min_y: -6
+      max_y: 6
+      score: 0.09
+    }
+    lidar_object_max_num: 100
+    use_nms: true
+    model_with_sigmoid: false
+    nms_param_3d {
+      object_label: "VEHICLE"
+      conf_thresh: 0.05
+      nms_thresh: 0.2
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_label: "BIKE"
+      conf_thresh: 0.2
+      nms_thresh: 0.001
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_label: "PEDESTRIAN"
+      conf_thresh: 0.09
+      nms_thresh: 0.001
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "VEHICLE"
+      conf_thresh: 0.01
+      nms_thresh: 0.7
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "BIKE"
+      conf_thresh: 0.01
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "PEDESTRIAN"
+      conf_thresh: 0.01
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+  }
+}
+
+operators {
+  name: "NVMOTOP_1"
+  type: "NVMOTVDOP"
+  top: "NVMOTOP_2"
+  nv_tracking_param {
+    camera_name: "nv_cameras"
+    object_label: "VEHICLE"
+    start_index: 10000
+    max_age: 5
+    display_age: 5
+    valid_threshold: 0.5
+    graph_solver_param {
+      bipartite_graph_solver_type: "KMBipartiteGraphSolver"
+      valid_threshold: 0.1
+      match_capacity: 1
+    }
+    similarity_weight_param {
+      similarity_types: ["CuboidIoUSimilarity", "ObjectDistanceGaussianSimilarity"]
+      similarity_weights: [0.8, 0.2]
+      is_filter_sim: [false, true]
+      lower_bound: [0.0001, 0.05]
+    }
+    iou_similarity_length_scale_ratio: 1.2
+    iou_similarity_width_scale_ratio: 1.2
+    neighbourhood_valid_threshold: 0.2
+    neighbourhood_area: [0.0, 0.0, 0.0, 0.0] # xmin, xmax, ymin, ymax
+    use_high_score_track: true
+    is_output_track: true
+    nv_tracker_param {
+        min_velocty_thresh: 10
+        world_center_for_unmovable_history: 15
+        mean_filter_window: 10
+        use_static_filter: true
+        max_static_size: 5
+        min_static_size: 5
+        use_velocity_measure: true
+        world_center {
+          init_variance: 5.0
+          measure_variance_x: 0.0005
+          measure_variance_y: 0.0005
+          measure_variance_vx: 5
+          measure_variance_vy: 2.5
+          process_variance: 1
+          enhance_nearby_lane_y: 20
+        }
+        static_filter {
+          init_variance: 5.0
+          measure_variance_x: 0.001
+          measure_variance_y: 0.0005
+          process_variance: 4
+        }
+        use_ct_model: false
+        use_model_speed_when_static: true
+        min_moving_avg_speed: 0.4
+        calc_avg_position_window_size: 10
+        min_cached_position_size: 20
+        use_ca_model: false
+        ca_model {
+          init_variance: 5.0
+          measure_variance_x: 0.001
+          measure_variance_y: 0.001
+          process_variance: 4
+        }
+      neighbourhood_x_max: 30
+      neighbourhood_x_min: -30
+      neighbourhood_y_max: 15
+      neighbourhood_y_min: -15
+      depth_ratio: 0.5
+      depth_ratio_top: 0.7
+      delta_y_max: 2.
+      delta_vy_max: 1.
+      same_direction_upper: 15
+      opposite_direction_lower: 165
+      }
+    use_filter_frame_threshold: 10
+    direction_tracker_param {
+      direction_filter_ratio: 0.2
+      direction_filter_ratio_top: 0.4
+      neighbourhood_x_max: 20
+      neighbourhood_x_min: -20
+      neighbourhood_y_max: 10
+      neighbourhood_y_min: -10
+      use_history_window: true
+    }
+    shape_tracker_param {
+      world_lhw_history: 15
+      type_filter_var: 0.3
+    }
+    }
+}
+
+operators {
+  name: "NVMOTOP_2"
+  type: "NVMOTVDOP"
+  top: "NVMOTOP_3"
+  nv_tracking_param {
+    camera_name: "nv_cameras"
+    object_label: "BIKE"
+    start_index: 20000
+    max_age: 5
+    display_age: 10
+    valid_threshold: 0.5
+    graph_solver_param {
+      bipartite_graph_solver_type: "KMBipartiteGraphSolver"
+      valid_threshold: 0.1
+      match_capacity: 1
+    }
+    similarity_weight_param {
+      similarity_types: ["CuboidIoUSimilarity", "ObjectDistanceSimilarity"]
+      similarity_weights: [0.2, 0.8]
+      is_filter_sim: [false, false]
+      lower_bound: [0.0, 0.0]
+    }
+    neighbourhood_valid_threshold: 0.2
+    neighbourhood_area: [0.0, 0.0, 0.0, 0.0] # xmin, xmax, ymin, ymax
+    use_high_score_track: true
+    is_output_track: true
+    nv_tracker_param {
+        min_velocty_thresh: 1
+        world_center_for_unmovable_history: 15
+        mean_filter_window: 10
+        world_center {
+          init_variance: 5.0
+          measure_variance_x: 0.0001
+          measure_variance_y: 0.0001
+          process_variance: 4
+        }
+        use_ct_model: false
+        max_static_size: 3
+        min_static_size: 2
+        calc_avg_position_window_size: 3
+        min_cached_position_size: 6
+        use_occlusion_rate_opt_velocity: true
+    }
+    use_filter_frame_threshold: 20
+    direction_tracker_param {
+      direction_filter_ratio: 0.2
+      direction_filter_ratio_top: 0.4
+      neighbourhood_x_max: 20
+      neighbourhood_x_min: -20
+      neighbourhood_y_max: 10
+      neighbourhood_y_min: -10
+      use_history_window: true
+    }
+    shape_tracker_param {
+      world_lhw_history: 15
+      type_filter_var: 0.3
+    }
+    }
+}
+
+operators {
+  name: "NVMOTOP_3"
+  type: "NVMOTVDOP"
+  top: "NVNMSOP_1"
+  nv_tracking_param {
+    camera_name: "nv_cameras"
+    object_label: "PEDESTRIAN"
+    start_index: 30000
+    max_age: 5
+    display_age: 10
+    valid_threshold: 0.5
+    velocity_upperbound: 3.0
+    graph_solver_param {
+      bipartite_graph_solver_type: "KMBipartiteGraphSolver"
+      valid_threshold: 0.1
+      match_capacity: 1
+    }
+    similarity_weight_param {
+      similarity_types: ["CuboidIoUSimilarity", "ObjectDistanceSimilarity"]
+      similarity_weights: [0.8, 0.2]
+      is_filter_sim: [false, false]
+      lower_bound: [0.0, 0.0]
+    }
+    neighbourhood_valid_threshold: 0.2
+    neighbourhood_area: [0.0, 0.0, -0.0, 0.0] # xmin, xmax, ymin, ymax
+    use_high_score_track: true
+    is_output_track: true
+    nv_tracker_param {
+        min_velocty_thresh: 1
+        world_center_for_unmovable_history: 15
+        mean_filter_window: 10
+        world_center {
+          init_variance: 5.0
+          measure_variance_x: 0.0001
+          measure_variance_y: 0.0001
+          process_variance: 4
+        }
+        max_static_size: 5
+        min_static_size: 3
+        calc_avg_position_window_size: 5
+        min_cached_position_size: 10
+        use_ct_model: false
+      }
+    use_filter_frame_threshold: 20
+    direction_tracker_param {
+      direction_filter_ratio: 0.2
+      use_history_window: true
+    }
+    shape_tracker_param {
+      world_lhw_history: 15
+      type_filter_var: 0.3
+    }
+    }
+}
+
+operators {
+  name: "NVNMSOP_1"
+  type: "NVNMSVDOP"
+  top: "NVOUTPUTOP_1"
+  nv_tracked_nms_param {
+    sensor_name: "nv_cameras"
+    camera_names: [
+                "center_camera_fov30",
+                "center_camera_fov120",
+                "rear_camera",
+                "left_front_camera",
+                "right_front_camera",
+                "left_rear_camera",
+                "right_rear_camera"
+                ]
+    nms_param_3d {
+      object_labels: ["VEHICLE"]
+      conf_thresh: -1
+      nms_thresh: 0.2
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "VEHICLE"
+      conf_thresh: -1
+      nms_thresh: 0.6
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_labels: ["BIKE"]
+      conf_thresh: -1
+      nms_thresh: 0.2
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "BIKE"
+      conf_thresh: -1
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_labels: ["PEDESTRIAN"]
+      conf_thresh: -1
+      nms_thresh: 0.2
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_2d {
+      object_label: "PEDESTRIAN"
+      conf_thresh: -1
+      nms_thresh: 0.1
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    nms_param_3d {
+      object_labels: ["PEDESTRIAN", "BIKE"]
+      conf_thresh: -1
+      nms_thresh: 0.4
+      topk_bef_nms: 900
+      topk_aft_nms: 200
+    }
+    }
+}
+
+###### nv output
+operators {
+  name: "NVOUTPUTOP_1"
+  type: "NVOUTPUTVDOP"
+  top: "SetCameraObjects_PostProcess"
+  nv_output_param{
+  sensor_name: "nv_cameras"
+  rm_car_lateral_vel: false
+  camera_names: [
+                "center_camera_fov120",
+                "rear_camera",
+                "left_front_camera",
+                "right_front_camera",
+                "left_rear_camera",
+                "right_rear_camera"
+                ]
+  }
+}
+
+operators {
+  name: "SetCameraObjects_PostProcess"
+  type: "ProducerConsumerOP"
+  producer_consumer_param {
+    is_producer: true
+    is_set_camera_object: true
+  }
+}

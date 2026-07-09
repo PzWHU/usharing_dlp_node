@@ -1,0 +1,217 @@
+num_workers: 1
+module_name: "road_geometry_fusion_lane"
+
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "licenses/perception_aggregator/GAC_SENSEADAS.lic"
+}
+fps: 20
+
+operators {
+  name: "FusionLaneFrameMover_nvcams"
+  type: "VDFrameMoverOP"
+  top: "CalibrationManagerOP_fusion_lane"
+  frame_mover_param {
+      is_producer: false
+      camera_name: "nv_cameras"
+  }
+}
+
+operators {
+  name: "CalibrationManagerOP_fusion_lane"
+  type: "CalibrationManagerOP"
+  top: "FusionLaneOP_nvcams"
+  calibration_manager_param {
+    homography_valid_info {
+      camera_name: "center_camera_fov30"
+      is_valid_area_constraint_effective: true
+      world_x_min: 3.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1280
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 30
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "center_camera_fov120"
+      is_valid_area_constraint_effective: true
+      world_x_min: 3.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1280
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "left_rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: 5.0
+      world_y_min: 1.5
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "left_front_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -5.0
+      world_x_max: 20.0
+      world_y_min: 1.5
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "right_rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: 5.0
+      world_y_min: -10.0
+      world_y_max: -1.5
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "right_front_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -5.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: -1.5
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: -2.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    use_online_calibrator: false
+  }
+  vehicle_param {
+    sensor_config_folder: "vehicle/default"
+  }
+}
+
+operators {
+  name: "FusionLaneOP_nvcams"
+  type: "FusionLaneOP"
+  top: "LanePositionProcessOP_NV_Lane_OUTPUT"
+  fusion_lane_param {
+    camera_name: "nv_cameras"
+    lane_tracker_param {
+      type: "ClothoidCurveLaneTracker"
+      clothoid_curve_tracker_param {
+        interception_process_noise: 0.2
+        heading_process_noise: 1e-5
+        curvature_process_noise: 1e-6
+        curvature_rate_process_noise: 1e-10
+        measurement_noise_base: 0.4
+        measurement_noise_x_dist_propotion: 70
+        initial_interception_noise: 1.0
+        initial_heading_noise: 0.05
+        initial_curvature_noise: 0.04
+        initial_curvature_rate_noise: 1e-4
+      }
+    }
+  }
+}
+
+operators {
+  name: "LanePositionProcessOP_NV_Lane_OUTPUT"
+  type: "LanePositionProcessOP"
+  top: "LanePositionProcessOP_NV_Roadside"
+  lane_position_process_param {
+    camera_name: "nv_cameras"
+    process_label: "LANELINE"
+    min_lane_length: 4.0
+    standard_line_width: 0.15
+    normal_lane_width: 3.50
+  }
+}
+
+operators {
+  name: "LanePositionProcessOP_NV_Roadside"
+  type: "LanePositionProcessOP"
+  lane_position_process_param {
+    camera_name: "nv_cameras"
+    process_label: "ROADSIDE"
+  }
+}

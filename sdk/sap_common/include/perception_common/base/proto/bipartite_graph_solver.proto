@@ -1,0 +1,14 @@
+// Copyright (C) 2020 by SenseTime Group Limited. All rights reserved.
+// Zhang Shiquan <zhangshiquan@sensetime.com>
+
+syntax = "proto2";
+package senseAD.perception;
+
+message GraphSolverParameter {
+    required string bipartite_graph_solver_type = 1
+        [default = "KMBipartiteGraphSolver"];
+    optional uint32 match_capacity = 2 [default = 1];
+    optional float valid_threshold = 3 [default = 0.0];
+    optional uint32 nearest_neighbors_num = 4 [default = 1];
+    optional float neighbor_max_distance_meter = 5 [default = 0.5];
+}

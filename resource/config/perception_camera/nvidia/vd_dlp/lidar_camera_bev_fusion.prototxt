@@ -1,0 +1,436 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "lidar_camera_bev_fusion"
+is_pub_result: false
+select_cameras: [
+  {camera_name: "center_camera_fov30", camera_fps: 20},
+  {camera_name: "center_camera_fov120", camera_fps: 20},
+  {camera_name: "left_rear_camera", camera_fps: 10},
+  {camera_name: "left_front_camera", camera_fps: 10},
+  {camera_name: "right_rear_camera", camera_fps: 10},
+  {camera_name: "right_front_camera", camera_fps: 10},
+  {camera_name: "rear_camera", camera_fps: 10}
+]
+select_lidars {
+  lidar_name: "stitching_lidar"
+}
+multi_cam_match_ts_th: 25000000
+
+cuda_mutex_switch: true
+wait_cuda_mutex_time_ms: 200
+
+operators {
+  name: "ImagePreprocessOP_center_camera_fov30"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "center_camera_fov30"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "center_camera_fov30"
+          dst_image_name: "center_camera_fov30_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "center_camera_fov30_normalized_1"
+          dst_image_name: "center_camera_fov30_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_center_camera_fov120"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "center_camera_fov120"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "center_camera_fov120"
+          dst_image_name: "center_camera_fov120_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "center_camera_fov120_normalized_1"
+          dst_image_name: "center_camera_fov120_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_left_front_camera"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "left_front_camera"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "left_front_camera"
+          dst_image_name: "left_front_camera_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "left_front_camera_normalized_1"
+          dst_image_name: "left_front_camera_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_left_rear_camera"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "left_rear_camera"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "left_rear_camera"
+          dst_image_name: "left_rear_camera_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "left_rear_camera_normalized_1"
+          dst_image_name: "left_rear_camera_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_rear_camera"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "rear_camera"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "rear_camera"
+          dst_image_name: "rear_camera_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "rear_camera_normalized_1"
+          dst_image_name: "rear_camera_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_right_front_camera"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "right_front_camera"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "right_front_camera"
+          dst_image_name: "right_front_camera_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "right_front_camera_normalized_1"
+          dst_image_name: "right_front_camera_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "ImagePreprocessOP_right_rear_camera"
+  type: "ImagePreprocessOP"
+  top: "CalibrationManagerOP"
+  image_preprocess_param {
+      camera_name: "right_rear_camera"
+      pym_slice_idx: 0
+      normalize_param {
+          src_image_name: "right_rear_camera"
+          dst_image_name: "right_rear_camera_normalized_1"
+          src_image_type: UINT8
+          dst_image_type: FLOAT32
+          b_mean: 103.53
+          g_mean: 116.28
+          r_mean: 123.675
+          b_std: 57.375
+          g_std: 57.12
+          r_std: 58.395
+          is_need_rgb: true
+      }
+      permute_param {
+          src_image_name: "right_rear_camera_normalized_1"
+          dst_image_name: "right_rear_camera_permuted_1"
+          src_image_type: FLOAT32
+          dst_image_type: FLOAT32
+      }
+  }
+  execute_priority: -2
+}
+
+operators {
+    name: "Getinput_Post"
+    type: "DataInputConsumerOP"
+    top: "CalibrationManagerOP"
+    data_input_consumer_param {
+        set_op_name: "SapDataInput"
+        is_producer: false
+        road_struct_name: "RoadStructure"
+        road_struct_wait_flag: false
+        is_road_struct_input: true
+        loc_info_name: "LocationInfo"
+        loc_info_wait_flag: false
+        is_loc_info_input: true
+        location_info_cache_size: 120
+        location_info_max_diff: 100
+        road_structure_cache_size: 30
+        road_structure_max_diff: 100
+    }
+}
+
+operators {
+  name: "CalibrationManagerOP"
+  type: "CalibrationManagerOP"
+  top: "nullnode"
+  top: "CameraAttTrasnformInputOP"
+  calibration_manager_param {
+    homography_valid_info {
+      camera_name: "center_camera_fov30"
+      is_valid_area_constraint_effective: true
+      world_x_min: 3.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 3840
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 2160
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 30
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+  }
+  homography_valid_info {
+      camera_name: "center_camera_fov120"
+      is_valid_area_constraint_effective: true
+      world_x_min: 3.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 3840
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 2160
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+  }
+    homography_valid_info {
+      camera_name: "left_rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: 5.0
+      world_y_min: 1.5
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "left_front_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -5.0
+      world_x_max: 20.0
+      world_y_min: 1.5
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "right_rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: 5.0
+      world_y_min: -10.0
+      world_y_max: -1.5
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "right_front_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -5.0
+      world_x_max: 20.0
+      world_y_min: -10.0
+      world_y_max: -1.5
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    homography_valid_info {
+      camera_name: "rear_camera"
+      is_valid_area_constraint_effective: true
+      world_x_min: -20.0
+      world_x_max: -2.0
+      world_y_min: -10.0
+      world_y_max: 10.0
+      image_x_min: 0
+      image_x_max: 1920
+      image_y_min_at_x_min: 550
+      image_y_min_at_x_max: 550
+      image_y_max: 1080
+      vanish_point_by_grid_type: "homography_solver"
+      fov: 120
+      h_matrix_from_config: true
+      expected_symmetric_distance: 0.02
+      get_extrinsic_type: HMAT_SOLVER
+      cam_gnd_height_from_extrinsic: true
+      bumper_point_from_confg: false
+    }
+    use_online_calibrator: false
+  }
+  vehicle_param {
+    sensor_config_folder: "/opt/senseauto_active/senseauto-vehicle-config/vehicle/A02-528"
+  }
+  precede_submodule: "config/vd_dlp/lidar_bev_backbone.prototxt"
+  precede_submodule: "config/vd_dlp/camera_bev_v9_7_ep12_backbone.prototxt"
+  submodule_thread_type: "async"
+  submodule_thread_type: "async"
+}
+
+operators {
+  name: "nullnode"
+  type: "NullNodeOP"
+  top: "GeneralInputSetupOP"
+}
+
+
+operators {
+  name: "GeneralInputSetupOP"
+  type: "GeneralInputSetupOP"
+  succeed_submodule: "config/vd_dlp/camera_bev_v9_7_ep12_backbone.prototxt"
+  succeed_submodule: "config/vd_dlp/lidar_bev_backbone.prototxt"
+  general_input_setup_param {
+    output_convert_param { # for gop
+      predictor_name: "GeneralPredictorOP_lidar_branch_sim"
+      net_output_name: "spatial_features_2d_lidar"
+      data_input_name: "spatial_features_2d_lidar"
+      data_input_shape: [1, 96, 128, 320]
+    }
+  }
+
+  precede_submodule: "config/vd_dlp/camera_bev_v9_7_ep12_road.prototxt"
+  precede_submodule: "config/vd_dlp/camera_bev_v9_7_ep12_pvb.prototxt"
+  precede_submodule: "config/vd_dlp/camera_bev_v9_7_ep12_gop.prototxt"
+  submodule_thread_type: "async"
+  submodule_thread_type: "async"
+  submodule_thread_type: "async"
+}

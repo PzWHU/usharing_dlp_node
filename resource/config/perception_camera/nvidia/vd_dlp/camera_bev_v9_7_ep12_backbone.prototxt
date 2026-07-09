@@ -1,0 +1,115 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "backbone"
+is_pub_result: false
+
+cuda_mutex_switch: true
+wait_cuda_mutex_time_ms: 200
+
+###### spetr backbone
+operators{
+  name: "SPETRPredictorOP_Backbone"
+  type: "NVGeneralPredictorOP"
+  top: "GeneralInputSetupOP"
+  general_predictor_param {
+    gpu_id: 0
+    dnn_param {
+      model_folder_path: "models/lc_vd_2v_gop"
+      model_file: "backbone.bin"
+      model_weight: ""
+      model_config: "backbone_parameters.json"
+    }
+    net_input_name: [
+      "center_camera_fov30",
+      "center_camera_fov120",
+      "left_front_camera",
+      "left_rear_camera",
+      "rear_camera",
+      "right_rear_camera",
+      "right_front_camera"
+    ]
+    data_input_name: [
+        "center_camera_fov30_permuted_1",
+        "center_camera_fov120_permuted_1",
+        "left_front_camera_permuted_1",
+        "left_rear_camera_permuted_1",
+        "rear_camera_permuted_1",
+        "right_rear_camera_permuted_1",
+        "right_front_camera_permuted_1"
+    ]
+    src_image_type: FLOAT32
+    predictor_type: TRT_CUDA_GRAPH
+  }
+  execute_priority: -2
+}
+
+###### spetr GeneralInputSetupOP
+operators {
+  name: "GeneralInputSetupOP"
+  type: "GeneralInputSetupOP"
+  top: "SPETRPreprocessVDOP"
+  top: "Laneline3dRefPreProcess"
+  top: "SparseOccPreprocessOP"
+  # top: "GeneralPredictorOP_cam_branch_sim"
+  general_input_setup_param {
+    output_convert_param {   # for pvb
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_0"
+      data_input_name: "img_feats_0_pvb"
+      data_input_shape: [1, 1792, 72, 128]
+    }
+    output_convert_param { # for pvb
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_1"
+      data_input_name: "img_feats_1_pvb"
+      data_input_shape: [1, 1792, 36, 64]
+    }
+    output_convert_param { # for pvb road
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_2"
+      data_input_name: "img_feats_2_pvb"
+      data_input_shape: [1, 1792, 18, 32]
+    }
+    output_convert_param { # for pvb
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_3"
+      data_input_name: "img_feats_3_pvb"
+      data_input_shape: [1, 1792, 9, 16]
+    }
+    output_convert_param { # for gop  # only get 2v
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_0"
+      data_input_name: "img_feats_0_gop"
+      data_input_shape: [1, 512, 72, 128]
+      ignored_shape_diff: true
+    }
+    output_convert_param { # for gop  # only get 2v
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_1"
+      data_input_name: "img_feats_1_gop"
+      data_input_shape: [1, 512, 36, 64]
+      ignored_shape_diff: true
+    }
+    output_convert_param { # for gop  # only get 2v
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_2"
+      data_input_name: "img_feats_2_gop"
+      data_input_shape: [1, 512, 18, 32]
+      ignored_shape_diff: true
+    }
+    output_convert_param { # for gop  # only get 2v
+      predictor_name: "SPETRPredictorOP_Backbone"
+      net_output_name: "img_feats_3"
+      data_input_name: "img_feats_3_gop"
+      data_input_shape: [1, 512, 9, 16]
+      ignored_shape_diff: true
+    }
+  }
+
+  # precede_submodule: "config/lc_vd_mapqr_dlp_2v_gop/camera_bev_v9_7_ep12_pvb.prototxt"
+  # precede_submodule: "config/lc_vd_mapqr_dlp_2v_gop/camera_bev_v9_7_ep12_road.prototxt"
+  # precede_submodule: "config/lc_vd_mapqr_dlp_2v_gop/camera_bev_v9_7_ep12_occ_4in1.prototxt"
+  # submodule_thread_type: "async"
+  # submodule_thread_type: "async"
+  # submodule_thread_type: "async"
+}

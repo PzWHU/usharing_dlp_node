@@ -1,0 +1,2 @@
+/usr/bin/ar qc libusharing_dlp_node_sap.a CMakeFiles/usharing_dlp_node_sap.dir/sap/sap_planning_engine.cpp.o CMakeFiles/usharing_dlp_node_sap.dir/sap/sap_raii.cpp.o
+/usr/bin/ranlib libusharing_dlp_node_sap.a

@@ -1,0 +1,80 @@
+num_workers: 1
+is_pub_result: false
+module_name: "lidar_bev_backbone"
+
+cuda_mutex_switch: true
+wait_cuda_mutex_time_ms: 200
+serial_exec_list: ["LidarPointVoxelizeOP"]
+
+operators {
+  name: "LidarPointVoxelizeOP"
+  type: "LidarPointVoxelizeOP"
+  top: "GeneralPredictorOP_lidar_branch_sim"
+  lidar_point_voxelize_param {
+    camera_name: "stitching_lidar"
+    src_lidar_image_name: "stitching_lidar"
+    vfe_input_name: "vfe_input"
+    voxel_coords_name: "voxel_coords"
+    use_cpu_voxelize: true
+    detect_param {
+      field_x_min: 0
+      field_y_min: -20.48
+      field_z_min: -5
+      bev_field_x_min: 0
+      bev_field_y_min: -20.48
+      voxel_size_x: 0.16
+      voxel_size_y: 0.16
+      voxel_size_z: 8
+      grid_x_size: 640
+      grid_y_size: 256
+      grid_z_size: 1
+      bev_grid_x_size: 640
+      bev_grid_y_size: 256
+      detection_center_x: 0.0
+      detection_center_y: 0.0
+      pointcloud_z_offset_float: 0.0
+      car_field_front: 0.0
+      car_field_back: 0.0
+      car_field_left: 0.0
+      car_field_right: 0.0
+    }
+    pillar_param {
+      max_pillars_num: 20000
+      max_points_in_pillar: 32
+      pillar_point_fea_dims: 9
+      vfe_in_numbers: 1
+      num_threads: 64
+    }
+  }
+}
+
+operators {
+  name: "GeneralPredictorOP_lidar_branch_sim"
+  type: "NVGeneralPredictorOP"
+  top: "PPHeavyRpnPostProcess"
+  top: "Set_GeneralPredictorOP_lidar_branch_sim"
+  general_predictor_param {
+    gpu_id: 0
+    dnn_param {
+      model_folder_path: "models/lc_vd_2v_gop/"
+      model_file: "pts_backbone.bin"
+      model_weight: ""
+      model_config: "pts_backbone_parameters.json"
+    }
+    net_input_name: "vfe_input"
+    data_input_name: "vfe_input"
+    net_input_name: "voxel_coords"
+    data_input_name: "voxel_coords"
+    src_image_type: FLOAT32
+  }
+  execute_priority: -1
+}
+
+operators {
+  name: "Set_GeneralPredictorOP_lidar_branch_sim"
+  type: "ProducerConsumerOP"
+  producer_consumer_param {
+    is_producer: true
+    is_set_predictor_output: true
+  }
+}

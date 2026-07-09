@@ -1,0 +1,74 @@
+{
+  "s31": {
+    "object_frame_cfg": {
+      "type": 0,
+      "topic": "/perception/nv_cameras/object",
+      "isPub": false
+    },
+    "road_geometry_frame_cfg": {
+      "type": 0,
+      "topic": "/perception/nv_cameras/road_geometry",
+      "isPub": false
+    },
+    "fusion_object_frame_cfg": {
+      "type": 0,
+      "topic": "",
+      "isPub": false
+    },
+    "lidar_gop_frame_cfg": {
+      "type": 0,
+      "topic": "/perception/lidar_gop/object",
+      "isPub": false
+    },
+    "occupancy_info_cfg": {
+      "type": 0,
+      "topic": "/perception/nv_cameras/occ_info",
+      "isPub": false
+    },
+    "local_localization_cfg": {
+      "type": 0,
+      "topic": "/localization/odomstate_info",
+      "isPub": false
+    },
+    "location_info_cfg": {
+      "type": 0,
+      "topic": "",
+      "isPub": false
+    },
+    "vehicle_report_cfg": {
+      "type": 0,
+      "topic": "/canbus/vehicle_report",
+      "isPub": false
+    },
+    "vehicle_processing_cfg": {
+      "type": 0,
+      "topic": "/mcu/vehicle_processing",
+      "isPub": false
+    },
+    "scene_navi_map_cfg": {
+      "type": 0,
+      "topic": "/maplesslm/scene_navi_map",
+      "isPub": false
+    },
+    "amap_navi_info_cfg": {
+      "type": 0,
+      "topic": "/amap/nav_realtime/info",
+      "isPub": false
+    },
+    "prediction_pub_cfg": {
+      "type": 0,
+      "topic": "/prediction/objects_vd",
+      "isPub": true
+    },
+    "planning_debug_pub_cfg": {
+      "type": 0,
+      "topic": "/UniAD/PlanningDebug",
+      "isPub": true
+    },
+    "dlp_diag_pub_cfg": {
+      "type": 0,
+      "topic": "",
+      "isPub": false
+    }
+  }
+}

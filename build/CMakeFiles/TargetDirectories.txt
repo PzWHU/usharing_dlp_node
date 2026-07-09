@@ -1,0 +1,6 @@
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/usharing_dlp_node_core.dir
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/usharing_dlp_node_sap.dir
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/usharing_dlp_node_senseauto_converters.dir
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/usharing_dlp_node_rscl.dir
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/edit_cache.dir
+/home/lenovo/project/usharing_dlp_node/build/CMakeFiles/rebuild_cache.dir

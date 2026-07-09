@@ -1,0 +1,263 @@
+num_workers: 1
+module_name: "occupancy"
+is_pub_result: true
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "licenses/perception_camera/SENSEAD.lic"
+}
+
+
+vehicle_param {
+    sensor_config_folder: "vehicle/default"
+}
+
+operators {
+  name: "GetPredictorOutput_Road_Head"
+  type: "ProducerConsumerOP"
+  top: "GeneralInputSetupOP"
+  producer_consumer_param {
+    is_producer: false
+    data_name: "SPETRPredictorOP_Laneline3dHead"
+    set_op_name: "SetPredictorOutput_Road_Head"
+    is_get_predictor_output: true
+  }
+}
+
+operators {
+  name: "GeneralInputSetupOP"
+  type: "GeneralInputSetupOP"
+  top: "PredictorOP_SparseOcc"
+  general_input_setup_param {
+    output_convert_param { # for occ road
+      predictor_name: "SPETRPredictorOP_Laneline3dHead"
+      net_output_name: "bev_embed"
+      data_input_name: "bev_embed"
+      data_input_shape: [1, 18750, 256, 1]
+    }
+  }
+}
+
+operators {
+    name: "CalibrationManagerOP_occ"
+    type: "CalibrationManagerOP"
+    top: "PredictorOP_SparseOcc"
+    calibration_manager_param {
+      homography_valid_info {
+        camera_name: "center_camera_fov30"
+        is_valid_area_constraint_effective: true
+        world_x_min: 3.0
+        world_x_max: 20.0
+        world_y_min: -10.0
+        world_y_max: 10.0
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1280
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 30
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "center_camera_fov120"
+        is_valid_area_constraint_effective: true
+        world_x_min: 3.0
+        world_x_max: 20.0
+        world_y_min: -10.0
+        world_y_max: 10.0
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1280
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "left_rear_camera"
+        is_valid_area_constraint_effective: true
+        world_x_min: -20.0
+        world_x_max: 5.0
+        world_y_min: 1.5
+        world_y_max: 10.0
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1080
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "left_front_camera"
+        is_valid_area_constraint_effective: true
+        world_x_min: -5.0
+        world_x_max: 20.0
+        world_y_min: 1.5
+        world_y_max: 10.0
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1080
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "right_rear_camera"
+        is_valid_area_constraint_effective: true
+        world_x_min: -20.0
+        world_x_max: 5.0
+        world_y_min: -10.0
+        world_y_max: -1.5
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1080
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "right_front_camera"
+        is_valid_area_constraint_effective: true
+        world_x_min: -5.0
+        world_x_max: 20.0
+        world_y_min: -10.0
+        world_y_max: -1.5
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1080
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      homography_valid_info {
+        camera_name: "rear_camera"
+        is_valid_area_constraint_effective: true
+        world_x_min: -20.0
+        world_x_max: -2.0
+        world_y_min: -10.0
+        world_y_max: 10.0
+        image_x_min: 0
+        image_x_max: 1920
+        image_y_min_at_x_min: 550
+        image_y_min_at_x_max: 550
+        image_y_max: 1080
+        vanish_point_by_grid_type: "homography_solver"
+        fov: 120
+        h_matrix_from_config: true
+        expected_symmetric_distance: 0.02
+        get_extrinsic_type: HMAT_SOLVER
+        cam_gnd_height_from_extrinsic: true
+        bumper_point_from_confg: false
+      }
+      use_online_calibrator: false
+    }
+    vehicle_param {
+      sensor_config_folder: "vehicle/default"
+    }
+}
+
+operators{
+  name: "PredictorOP_SparseOcc"
+  type: "NVGeneralPredictorOP"
+  top: "SparseOccGopPostProcessOP"
+  general_predictor_param {
+    gpu_id: 0
+    ai_core_group_id: 1
+    dnn_param {
+      model_folder_path: "models/x86/vd_dlp/perception_0826_cityway_highway"
+      model_file: "occ_head.bin"
+      model_weight: ""
+      model_config: "parameters_occ_4in1.json"
+    }
+    net_input_name: [
+      "bev_embed"
+    ]
+    data_input_name: [
+      "bev_embed"
+    ]
+    src_image_type: FLOAT32
+    # predictor_type: TRT_CUDA_GRAPH
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "SparseOccGopPostProcessOP"
+  type: "SparseOccGopPostProcessOP"
+  top: "SparseOccGopTrackingOP"
+  sparseocc_gop_postprocess_param {
+    predictor_name: "PredictorOP_SparseOcc"
+    occ_score_thr: 0.7
+    gop_score_thr: 0.7
+    ground_score_thr: 0.5
+    occ_size: [275,120,9]
+    occ_scores_name: "occ_pred"
+    gop_scores_name: "seg_pred"
+    save_name: "nv_cameras"
+    occ_max_dim: 5000
+    occ_type_num: 3
+    gop_type_num: 9
+    last_out_dim: 128
+    range_3d: [-10.0,-24.0,-1.2,100.0,24.0,2.4]
+    voxel_size: [0.4,0.4,0.4]
+  }
+}
+
+operators {
+  name: "SparseOccGopTrackingOP"
+  type: "SparseOccGopTrackingOP"
+  top: "SetOCC_PostProcess"
+  sparseocc_gop_tracking_param {
+    post_save_name: "nv_cameras"
+    save_name: "nv_cameras"
+    occ_size: [275,120,9]
+    enable_ego_overlap_filter: false
+    min_area_cells: 10
+    ego_occupancy_region: [17, 35, 56, 64]  # x_min, x_max, y_min, y_max
+    occ_ground_first: false
+    others_adaptive_thr:[3, 3]
+  }
+}
+
+operators {
+  name: "SetOCC_PostProcess"
+  type: "ProducerConsumerOP"
+  producer_consumer_param {
+    is_producer: true
+    is_set_occ_result: true
+  }
+}

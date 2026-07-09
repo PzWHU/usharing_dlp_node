@@ -1,0 +1,33 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "road_geo_seg_post"
+is_pub_result: false
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "/opt/senseauto_active/senseauto-perception-camera/resource/config/SENSEAD.lic"
+}
+
+vehicle_param {
+    sensor_config_folder: "/opt/senseauto_active/senseauto-vehicle-config/vehicle/A02-528"
+}
+
+operators{
+  name: "Laneline3dMapSegPostProcessOP"
+  type: "Laneline3dMapSegPostProcessOP"
+  top: "LaneIOUFusionOP"
+  laneline3d_map_seg_postprocess_param {
+    sensor_name: "nv_cameras_seg_head"
+    predictor_name: "SPETRPredictorOP_Laneline3dHead"
+    score_thr: 0.5
+    cluster_eps: 2.5
+    min_samples: 3.0
+    min_line_length: 2.0
+    looking_range: 6.0
+    map_range: [-20, -36.0, -5.0, 120.0, 36.0, 3.0]
+    heatmaps_name: "seg"
+    offsets_name: "seg_offset"
+    types_name: "seg_type"
+    colors_name: "seg_color"
+  }
+}

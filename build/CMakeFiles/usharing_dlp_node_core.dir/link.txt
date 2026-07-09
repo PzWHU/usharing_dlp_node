@@ -1,0 +1,2 @@
+/usr/bin/ar qc libusharing_dlp_node_core.a CMakeFiles/usharing_dlp_node_core.dir/core/planning_service.cpp.o CMakeFiles/usharing_dlp_node_core.dir/core/vehicle_state_machine.cpp.o
+/usr/bin/ranlib libusharing_dlp_node_core.a

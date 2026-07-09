@@ -1,0 +1,44 @@
+num_workers: 1
+module_name: "road_geo_mapqr_post"
+is_pub_result: false
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "/opt/senseauto_active/senseauto-perception-camera/resource/config/SENSEAD.lic"
+}
+
+vehicle_param {
+    sensor_config_folder: "/opt/senseauto_active/senseauto-vehicle-config/vehicle/A02-528"
+}
+
+operators {
+  name: "Laneline3dPostProcessOP"
+  type: "Laneline3dPostProcessOP"
+  top: "BevCrossWalkStopLineTrackingOP"
+  top: "LaneAreaNMSOP"
+  laneline3d_postprocess_param {
+    set_model_object: true
+    sensor_name: "nv_cameras"
+    predictor_name: "SPETRPredictorOP_Laneline3dHead"
+  }
+  dnn_param {
+      model_folder_path: "models/x86/vd_dlp/perception_0721_cityway_highway"
+      model_file: "road_head.bin"
+      model_weight: ""
+      model_config: "parameters_laneline3d_head.json"
+  }
+}
+
+operators {
+  name: "LaneAreaNMSOP"
+  type: "LaneAreaNMSOP"
+  top: "LaneIOUFusionOP"
+  lane_area_nms_param {
+    camera_name: "nv_cameras"
+    score_area: [-30, 40, 3, 0.4]
+    angle_thresh_deg: 3.5
+    buffer_width_big: 1.3
+    buffer_width_small: 0.8
+    lateral_distance_min: 6
+  }
+}

@@ -1,0 +1,287 @@
+# v01 l2q256+128 mem512
+num_workers: 1
+module_name: "road_geometry"
+is_pub_result: true
+env_param {
+  net_type: "kestrel"
+  product_name: "SenseAD"
+  license_file: "licenses/perception_camera/SENSEAD.lic"
+}
+
+vehicle_param {
+    sensor_config_folder: "vehicle/default"
+}
+
+# reference points preprocess
+operators {
+  name: "Laneline3dRefPreProcess"
+  type: "Laneline3dRefPreProcessOP"
+  top: "SPETRPredictorOP_Laneline3dHead"
+  laneline3d_ref_preprocess_param {
+    camera_names: [
+                "center_camera_fov30",
+                "center_camera_fov120",
+                "left_front_camera",
+                "left_rear_camera",
+                "rear_camera",
+                "right_rear_camera",
+                "right_front_camera"]
+    num_points_in_pillar: 4
+    feat_size: [150, 125, 8]
+    lidar2img_name: "lidar2camera_ref"
+    reference_points_name: "reference_points_cam"
+    # dump_data: true
+    # dump_path: "./"
+  }
+  dnn_param {
+    model_folder_path: "models/x86/vd_dlp/perception_0826_cityway_highway"
+    model_file: "road_head.bin"
+    model_weight: ""
+    model_config: "parameters_laneline3d_head.json"
+  }
+}
+
+operators{
+  name: "SPETRPredictorOP_Laneline3dHead"
+  type: "NVGeneralPredictorOP"
+  top: "Laneline3dPostProcessOP"
+  top: "SetPredictorOutput_Road_Head"
+  general_predictor_param {
+    gpu_id: 0
+    dnn_param {
+      model_folder_path: "models/x86/vd_dlp/perception_0826_cityway_highway"
+      model_file: "road_head.bin"
+      model_weight: ""
+      model_config: "parameters_laneline3d_head.json"
+    }
+    net_input_name: [
+      "img_feats_2",
+      "reference_points_cam"
+    ]
+    data_input_name: [
+      "img_feats_2",
+      "reference_points_cam"
+    ]
+    src_image_type: FLOAT32
+    predictor_type: TRT_CUDA_STREAM
+  }
+  execute_priority: -2
+}
+
+operators {
+  name: "SetPredictorOutput_Road_Head"
+  type: "ProducerConsumerOP"
+#   top: "GetDataInputFloat_PVB_Head"
+  producer_consumer_param {
+    is_producer: true
+    is_set_predictor_output: true
+  }
+}
+
+operators {
+  name: "Laneline3dPostProcessOP"
+  type: "Laneline3dPostProcessOP"
+  top: "BevCrossWalkStopLineTrackingOP"
+  top: "LaneAreaNMSOP"
+  top: "RoadsideTrackingOP_nvcam"
+  laneline3d_postprocess_param {
+  set_model_object: true
+    sensor_name: "nv_cameras"
+    predictor_name: "SPETRPredictorOP_Laneline3dHead"
+      }
+  dnn_param {
+      model_folder_path: "models/x86/vd_dlp/perception_0826_cityway_highway"
+      model_file: "road_head.bin"
+      model_weight: ""
+      model_config: "parameters_laneline3d_head.json"
+  }
+}
+
+operators {
+  name: "LaneAreaNMSOP"
+  type: "LaneAreaNMSOP"
+  top: "LaneTrackingOP_nvcams"
+  lane_area_nms_param {
+    camera_name: "nv_cameras"
+    score_area: [-30, 40, 3, 0.4]
+    angle_thresh_deg: 3.5
+    buffer_width_big: 1.3
+    buffer_width_small: 0.8
+  }
+}
+
+operators {
+  name: "LaneTrackingOP_nvcams"
+  type: "LaneTrackingOP"
+  top: "RoadGeometryGeneralPostprocessOP"
+  lane_tracking_param {
+    camera_name: "nv_cameras"
+    graph_solver_param {
+      bipartite_graph_solver_type: "KMBipartiteGraphSolver"
+      valid_threshold: 0.5
+      match_capacity: 1
+    }
+    similarity_weight_param {
+      similarity_types: ["LaneDistanceSimilarity"]
+      similarity_weights: [1.0]
+    }
+    lane_tracker_param {
+      type: "LanePointTracker"
+      lane_point_tracker_param {
+        measurement_x_noise: 0.2
+        measurement_y_noise: 0.2
+        process_x_noise: 0.02
+        process_y_noise: 0.02
+        ctrl_point_lost_thresh: 3
+        ctrl_point_hit_thresh: 3 # ctrl_point_hit_thresh <= initial_hit_streak_thresh
+        is_use_cr_spline_sample: true
+        state_buffer_time_interval_s: 2.0
+        is_use_lane_length_filter: false
+        is_use_lane_attribute_filter: true
+        invisible_time_thresh: 3
+        initial_hit_streak_thresh: 3
+        filter_attribute_time_interval_s: 0.85
+        cutpt_initial_hit_streak_thresh: 3
+      }
+    }
+  }
+}
+
+operators {
+ name: "RoadsideTrackingOP_nvcam"
+ type: "RoadsideTrackingOP"
+  top: "RoadGeometryGeneralPostprocessOP"
+ lane_tracking_param {
+   camera_name: "nv_cameras"
+   graph_solver_param {
+     bipartite_graph_solver_type: "KMBipartiteGraphSolver"
+     valid_threshold: 0.4
+     match_capacity: 1
+   }
+   similarity_weight_param {
+     similarity_types: ["LaneDistanceSimilarity"]
+     similarity_weights: [1.0]
+   }
+    lane_tracker_param {
+      type: "LanePointTracker"
+      lane_point_tracker_param {
+        measurement_x_noise: 0.2
+        measurement_y_noise: 0.2
+        process_x_noise: 0.02
+        process_y_noise: 0.02
+        ctrl_point_lost_thresh: 3
+        ctrl_point_hit_thresh: 3 # ctrl_point_hit_thresh <= initial_hit_streak_thresh
+        is_use_cr_spline_sample: true
+        state_buffer_time_interval_s: 2.0
+        is_use_lane_length_filter: false
+        is_use_lane_attribute_filter: false
+        invisible_time_thresh: 3
+        initial_hit_streak_thresh: 3
+        filter_attribute_time_interval_s: 0.85
+        cutpt_initial_hit_streak_thresh: 3
+      }
+    }
+  }
+}
+
+
+operators {
+  name: "BevCrossWalkStopLineTrackingOP"
+  type: "AdditionalLaneTrackingOP"
+  top: "RoadGeometryGeneralPostprocessOP"
+  additional_lane_tracking_param {
+    camera_name: "center_camera_fov120"
+    crosswalk_tracker_param {
+      measurement_x_noise: 0.4
+      measurement_y_noise: 0.4
+      measurement_l_noise: 0.8
+      measurement_w_noise: 0.8
+      measurement_theta_noise: 0.1
+      process_x_noise: 0.05
+      process_y_noise: 0.05
+      process_l_noise: 0.05
+      process_w_noise: 0.05
+      process_theta_noise: 0.005
+      initial_x_noise: 0.2
+      initial_y_noise: 0.2
+      initial_l_noise: 0.4
+      initial_w_noise: 0.4
+      initial_theta_noise: 0.17
+      state_buffer_time_interval_s: 2.0
+      invisible_time_thresh: 5
+      initial_hit_streak_thresh: 5
+    }
+    stopline_tracker_param {
+      measurement_x_noise: 0.4
+      measurement_y_noise: 0.4
+      measurement_l_noise: 0.8
+      measurement_theta_noise: 0.02
+      process_x_noise: 0.05
+      process_y_noise: 0.05
+      process_l_noise: 0.1
+      process_theta_noise: 0.02
+      initial_x_noise: 0.2
+      initial_y_noise: 0.2
+      initial_l_noise: 0.4
+      initial_theta_noise: 0.17
+      state_buffer_time_interval_s: 2.0
+      invisible_time_thresh: 5
+      initial_hit_streak_thresh: 5
+    }
+    remove_laneline_front: 6.0
+    velocity_threshold: -200.0
+  }
+}
+
+operators {
+  name: "RoadGeometryGeneralPostprocessOP"
+  type: "RoadGeometryGeneralPostprocessOP"
+top: "FrameMover_nvcam"
+  road_geometry_general_postprocess_param {
+    optim_lane_by_stop_param {
+      enable_flag: true
+      ego_car_velocity_limit: 80.0
+      length_gap_limit: 5.0
+    }
+  }
+}
+
+operators {
+  name: "FrameMover_nvcam"
+  type: "VDFrameMoverOP"
+  frame_mover_param {
+      is_producer: true
+      camera_name: "nv_cameras"
+  }
+}
+
+
+# set for dlp
+operators {
+  name: "SetLanelines_PostProcess"
+  type: "ProducerConsumerOP"
+  top: "SetRoadside_PostProcess"
+  producer_consumer_param {
+    is_producer: true
+      is_set_laneline_result: true
+  }
+}
+
+operators {
+  name: "SetRoadside_PostProcess"
+  type: "ProducerConsumerOP"
+  top: "SetCrosswalk_PostProcess"
+  producer_consumer_param {
+    is_producer: true
+    is_set_roadside_result: true
+  }
+}
+
+operators {
+  name: "SetCrosswalk_PostProcess"
+  type: "ProducerConsumerOP"
+  producer_consumer_param {
+    is_producer: true
+    is_set_crosswalk_result: true
+  }
+}
