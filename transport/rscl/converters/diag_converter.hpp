@@ -9,7 +9,7 @@
 #include <ad_msg_idl/ad_framework_sdk/diag_msg.capnp.h>
 
 #include "transport/rscl/converters/output_sequence_state.hpp"
-#include "core/diagnostics.hpp"
+#include "planning_core/diagnostics.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

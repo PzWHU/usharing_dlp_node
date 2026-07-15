@@ -34,6 +34,9 @@ option(USHARING_DLP_NODE_BUILD_RSCL
 option(USHARING_DLP_NODE_BUILD_RSCL_APP
        "Build standalone RSCL executable; requires libsap_camera.so and libsap_common.so"
        OFF)
+option(USHARING_DLP_NODE_BUILD_RSCL_SMOKE_APP
+       "Build RSCL bag smoke-test executable with a fake planning engine; does not require sap_camera libs"
+       OFF)
 option(USHARING_DLP_NODE_BUILD_SENSEAUTO_CONVERTERS
        "Build SenseAuto Cap'n Proto converters used by the RSCL transport" OFF)
 option(USHARING_DLP_NODE_HAS_SAP_PUSH_LIDAR_GOP_FRAME
@@ -60,9 +63,11 @@ if(DEFINED PLANNING_PORT_BUILD_SENSEAUTO_CONVERTERS)
       CACHE BOOL "Build SenseAuto Cap'n Proto converters" FORCE)
 endif()
 
-set(USHARING_DLP_NODE_COMMON_INCLUDE_DIRS
+set(USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS
   ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_CURRENT_LIST_DIR}/sap
+)
+
+set(USHARING_DLP_NODE_SAP_INCLUDE_DIRS
   ${SAP_CAMERA_ROOT}/include
   ${SAP_COMMON_ROOT}/include
   ${SAP_COMMON_ROOT}/include/perception_common
@@ -87,40 +92,53 @@ set(USHARING_DLP_NODE_SENSEAUTO_CONVERTER_SOURCES
   transport/rscl/converters/vehicle_report_converter.cpp
 )
 
-add_library(usharing_dlp_node_core STATIC
-  core/planning_service.cpp
-  core/vehicle_state_machine.cpp
+add_library(usharing_dlp_node_planning_sap_types INTERFACE)
+
+target_include_directories(usharing_dlp_node_planning_sap_types
+  INTERFACE
+    ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
+    ${USHARING_DLP_NODE_SAP_INCLUDE_DIRS}
 )
 
-target_include_directories(usharing_dlp_node_core
+add_library(usharing_dlp_node_planning_core STATIC
+  planning_core/planning_service.cpp
+  planning_core/vehicle_state_machine.cpp
+)
+
+target_include_directories(usharing_dlp_node_planning_core
   PUBLIC
-    ${USHARING_DLP_NODE_COMMON_INCLUDE_DIRS}
+    ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
 )
 
-add_library(usharing_dlp_node_sap STATIC
-  sap/sap_planning_engine.cpp
-  sap/sap_raii.cpp
-)
-
-target_include_directories(usharing_dlp_node_sap
+target_link_libraries(usharing_dlp_node_planning_core
   PUBLIC
-    ${USHARING_DLP_NODE_COMMON_INCLUDE_DIRS}
+    usharing_dlp_node_planning_sap_types
 )
 
-target_link_directories(usharing_dlp_node_sap
+add_library(usharing_dlp_node_planning_sap STATIC
+  planning_sap/sap_planning_engine.cpp
+  planning_sap/sap_raii.cpp
+)
+
+target_include_directories(usharing_dlp_node_planning_sap
+  PUBLIC
+    ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
+)
+
+target_link_directories(usharing_dlp_node_planning_sap
   PUBLIC
     ${SAP_CAMERA_ROOT}/lib
     ${SAP_COMMON_ROOT}/lib
 )
 
-target_link_libraries(usharing_dlp_node_sap
+target_link_libraries(usharing_dlp_node_planning_sap
   PUBLIC
-    usharing_dlp_node_core
+    usharing_dlp_node_planning_core
     sap_camera
     sap_common
 )
 if(USHARING_DLP_NODE_HAS_SAP_PUSH_LIDAR_GOP_FRAME)
-  target_compile_definitions(usharing_dlp_node_sap
+  target_compile_definitions(usharing_dlp_node_planning_sap
     PUBLIC
       USHARING_DLP_NODE_HAS_SAP_PUSH_LIDAR_GOP_FRAME=1
   )
@@ -132,7 +150,7 @@ if(USHARING_DLP_NODE_BUILD_RSCL OR
   #   rscl_install-V1.0/example/4_raw_pubsub/CMakeLists.txt
   # Difference from source:
   #   This module uses the same SenseAuto package discovery, but keeps the
-  #   RSCL target optional so usharing_dlp_node_core remains middleware-neutral.
+  #   RSCL target optional so planning_core remains middleware-neutral.
   set(BUILDTOOLS_TARGET_PLATFORM "x86_64" CACHE STRING
       "SenseAuto buildtools target platform")
   list(APPEND CMAKE_PREFIX_PATH
@@ -156,7 +174,7 @@ if(USHARING_DLP_NODE_BUILD_SENSEAUTO_CONVERTERS)
   )
   target_include_directories(usharing_dlp_node_senseauto_converters
     PUBLIC
-      ${USHARING_DLP_NODE_COMMON_INCLUDE_DIRS}
+      ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
       ${ADMsgIDL_INCLUDE_DIRS}
       ${SENSEAUTO_MSG_ROOT}/include
       ${SENSEAUTO_3RDPARTY_ROOT}/include
@@ -173,7 +191,7 @@ if(USHARING_DLP_NODE_BUILD_SENSEAUTO_CONVERTERS)
   )
   target_link_libraries(usharing_dlp_node_senseauto_converters
     PUBLIC
-      usharing_dlp_node_core
+      usharing_dlp_node_planning_core
       ad_prediction_capnp
       perception_capnp
       ad_framework_sdk_capnp
@@ -235,7 +253,7 @@ if(USHARING_DLP_NODE_BUILD_RSCL)
   )
   target_include_directories(usharing_dlp_node_rscl
     PUBLIC
-      ${USHARING_DLP_NODE_COMMON_INCLUDE_DIRS}
+      ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
       ${CMAKE_CURRENT_LIST_DIR}/transport/rscl
       ${ADFramework_INCLUDE_DIRS}
       ${ADMsgIDL_INCLUDE_DIRS}
@@ -262,7 +280,7 @@ if(USHARING_DLP_NODE_BUILD_RSCL)
   )
   target_link_libraries(usharing_dlp_node_rscl
     PUBLIC
-      usharing_dlp_node_core
+      usharing_dlp_node_planning_core
       ${JSONCPP_LIBRARY}
       ${ADFramework_LIBRARIES}
       ad_prediction_capnp
@@ -315,9 +333,24 @@ if(USHARING_DLP_NODE_BUILD_RSCL)
     target_link_libraries(usharing_dlp_node_main_rscl
       PRIVATE
         usharing_dlp_node_rscl
-        usharing_dlp_node_sap
+        usharing_dlp_node_planning_sap
         ${SAP_CAMERA_LIBRARY}
         ${SAP_COMMON_LIBRARY}
+    )
+  endif()
+
+  if(USHARING_DLP_NODE_BUILD_RSCL_SMOKE_APP)
+    add_executable(usharing_dlp_node_rscl_smoke
+      app/main_rscl_smoke.cpp
+      app/rscl_smoke_sap_stubs.cpp
+    )
+    target_include_directories(usharing_dlp_node_rscl_smoke
+      PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/transport/rscl
+    )
+    target_link_libraries(usharing_dlp_node_rscl_smoke
+      PRIVATE
+        usharing_dlp_node_rscl
     )
   endif()
 endif()
@@ -329,11 +362,11 @@ if(USHARING_DLP_NODE_BUILD_ROS2)
   )
   target_include_directories(usharing_dlp_node_ros2
     PUBLIC
-      ${USHARING_DLP_NODE_COMMON_INCLUDE_DIRS}
+      ${USHARING_DLP_NODE_PROJECT_INCLUDE_DIRS}
   )
   target_link_libraries(usharing_dlp_node_ros2
     PUBLIC
-      usharing_dlp_node_core
+      usharing_dlp_node_planning_core
       rclcpp::rclcpp
   )
 endif()

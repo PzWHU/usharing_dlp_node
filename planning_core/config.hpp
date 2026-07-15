@@ -1,5 +1,5 @@
 // Ported from:
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 //   adapter/perception_camera/resource/x86/config/workshop/pilot_dlp_workshop.yaml
 //   from l29_sap_node-refs_tags_SenseAuto_thor_mp_v0.4.34
 // Purpose:

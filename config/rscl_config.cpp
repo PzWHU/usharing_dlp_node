@@ -6,6 +6,7 @@
 
 #include "config/rscl_config.hpp"
 
+#include <cstddef>
 #include <fstream>
 
 #include <json/json.h>
@@ -17,19 +18,35 @@
 namespace usharing_dlp_node {
 namespace {
 
-bool LoadJsonFile(const std::string& path, Json::Value* value) {
+void SetError(std::string* error, const std::string& message) {
+  if (error != nullptr) {
+    *error = message;
+  }
+}
+
+bool FileExists(const std::string& path) {
+  std::ifstream file(path);
+  return file.good();
+}
+
+bool LoadJsonFile(const std::string& path, Json::Value* value,
+                  std::string* error) {
   if (value == nullptr) {
+    SetError(error, "internal error: null Json::Value for " + path);
     return false;
   }
 
   std::ifstream json_file(path);
   if (!json_file.is_open()) {
+    SetError(error, "failed to open config file: " + path);
     return false;
   }
 
   Json::Reader reader;
   Json::Value parsed;
   if (!reader.parse(json_file, parsed)) {
+    SetError(error, "failed to parse config file: " + path + ": " +
+                        reader.getFormattedErrorMessages());
     return false;
   }
 
@@ -193,6 +210,36 @@ void ReadPlanningConfig(const Json::Value& value, PlanningConfig* config) {
   }
 }
 
+bool ValidatePlanningConfig(const PlanningConfig& config, std::string* error) {
+  if (config.camera_names.empty()) {
+    SetError(error, "planning_cfg camera_names must not be empty");
+    return false;
+  }
+  if (config.camera_names.size() != config.cameras_fps.size()) {
+    SetError(error, "planning_cfg camera_names and cameras_fps size mismatch");
+    return false;
+  }
+  if (config.pipelines.empty()) {
+    SetError(error, "planning_cfg pipelines must not be empty");
+    return false;
+  }
+  for (std::size_t i = 0; i < config.pipelines.size(); ++i) {
+    if (config.pipelines[i].pipeline_param_file.empty()) {
+      SetError(error, "planning_cfg pipeline_param_file must not be empty");
+      return false;
+    }
+    if (config.pipelines[i].publisher_module_name.empty()) {
+      SetError(error, "planning_cfg publisher_module_name must not be empty");
+      return false;
+    }
+    if (config.pipelines[i].camera_name.empty()) {
+      SetError(error, "planning_cfg camera_name must not be empty");
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 std::string JsonConfigLoader::NormalizeConfigDir(
@@ -212,14 +259,26 @@ std::string JsonConfigLoader::NormalizeConfigDir(
 bool JsonConfigLoader::Load(const std::string& config_dir,
                             PlanningConfig* planning_config,
                             RsclPortConfig* rscl_config) const {
+  return Load(config_dir, planning_config, rscl_config, nullptr);
+}
+
+bool JsonConfigLoader::Load(const std::string& config_dir,
+                            PlanningConfig* planning_config,
+                            RsclPortConfig* rscl_config,
+                            std::string* error) const {
   if (planning_config == nullptr || rscl_config == nullptr) {
+    SetError(error, "internal error: null output config pointer");
     return false;
   }
 
   const std::string dir = NormalizeConfigDir(config_dir);
 
   Json::Value sys_cfg;
-  if (LoadJsonFile(dir + "sys_cfg", &sys_cfg)) {
+  if (FileExists(dir + "sys_cfg") &&
+      !LoadJsonFile(dir + "sys_cfg", &sys_cfg, error)) {
+    return false;
+  }
+  if (!sys_cfg.isNull()) {
     // sys_cfg 只提供进程名和车型选择。字段名 ros_node_name 来自参考工程，
     // 这里不代表 core 依赖 ROS。
     const auto& root =
@@ -232,15 +291,22 @@ bool JsonConfigLoader::Load(const std::string& config_dir,
   }
 
   Json::Value planning_cfg;
-  if (LoadJsonFile(dir + "planning_cfg", &planning_cfg)) {
+  if (FileExists(dir + "planning_cfg") &&
+      !LoadJsonFile(dir + "planning_cfg", &planning_cfg, error)) {
+    return false;
+  }
+  if (!planning_cfg.isNull()) {
     // planning_cfg 缺失时保留 PlanningConfig 默认值，便于本地最小化测试；
     // topics_cfg 是通信链路必须项，缺失则 Load 返回 false。
     ReadPlanningConfig(planning_cfg, planning_config);
     ResolvePlanningResourceRoots(dir, planning_config);
+    if (!ValidatePlanningConfig(*planning_config, error)) {
+      return false;
+    }
   }
 
   Json::Value topics_cfg;
-  if (!LoadJsonFile(dir + "topics_cfg", &topics_cfg)) {
+  if (!LoadJsonFile(dir + "topics_cfg", &topics_cfg, error)) {
     return false;
   }
 

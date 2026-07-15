@@ -1,6 +1,6 @@
 // Ported from:
 //   adapter/perception_camera/include/perception_camera_proxy_traits.hpp
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Centralize sap* DTO aliases and SDK-owned output RAII rules.
 //

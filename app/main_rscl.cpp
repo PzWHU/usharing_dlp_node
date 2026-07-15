@@ -3,7 +3,7 @@
 //   planning_bus/app/planning/planning.cpp
 // Purpose:
 //   Standalone RSCL process entry for the migrated Pilot DLP planning port.
-//   RSCL is initialized here and remains outside core/sap code.
+//   RSCL is initialized here and remains outside planning_core/planning_sap code.
 //
 // 中文说明：
 //   这是 RSCL 版本可执行程序入口，只负责进程生命周期编排：
@@ -12,7 +12,7 @@
 //   3. 创建 middleware-neutral 的 PlanningService、SapPlanningEngine 和
 //      RsclPlanningTransport；
 //   4. 让进程常驻，等待 RSCL runtime 在后台触发订阅回调。
-//   注意：本文件是允许依赖 RSCL 的 app 边界，core/sap 层不应包含 RSCL。
+//   注意：本文件是允许依赖 RSCL 的 app 边界，planning_core/planning_sap 层不应包含 RSCL。
 
 #include <atomic>
 #include <cerrno>
@@ -25,9 +25,9 @@
 #include <thread>
 #include <unistd.h>
 
-#include "core/planning_service.hpp"
+#include "planning_core/planning_service.hpp"
 #include "config/rscl_config.hpp"
-#include "sap/sap_planning_engine.hpp"
+#include "planning_sap/sap_planning_engine.hpp"
 #include "rscl_access.hpp"
 #include "rscl_planning_transport.hpp"
 
@@ -108,9 +108,11 @@ int main(int argc, char** argv) {
   usharing_dlp_node::PlanningConfig planning_config;
   usharing_dlp_node::RsclPortConfig rscl_config;
   usharing_dlp_node::JsonConfigLoader loader;
+  std::string config_error;
   if (!loader.Load(ReadConfigDir(argc, argv), &planning_config,
-                   &rscl_config)) {
-    std::cerr << "failed to load usharing_dlp_node RSCL config" << std::endl;
+                   &rscl_config, &config_error)) {
+    std::cerr << "failed to load usharing_dlp_node RSCL config: "
+              << config_error << std::endl;
     return 1;
   }
 
@@ -119,28 +121,30 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // 依赖注入关系：
-  // PlanningService 不关心底层通信是 RSCL/ROS，也不关心算法实现细节；
-  // 当前可执行程序在 app 边界选择 RSCL transport 和 sap_camera SDK engine。
-  usharing_dlp_node::PlanningService service;
-  auto engine = std::make_unique<usharing_dlp_node::SapPlanningEngine>();
-  auto transport =
-      std::make_unique<usharing_dlp_node::rscl::RsclPlanningTransport>(
-          rscl_config);
-  if (!service.Init(planning_config, std::move(engine),
-                    std::move(transport))) {
-    std::cerr << "failed to initialize planning service" << std::endl;
-    CRsclAccess::Instance()->release();
-    return 1;
+  int exit_code = 0;
+  {
+    // 依赖注入关系：
+    // PlanningService 不关心底层通信是 RSCL/ROS，也不关心算法实现细节；
+    // 当前可执行程序在 app 边界选择 RSCL transport 和 sap_camera SDK engine。
+    usharing_dlp_node::PlanningService service;
+    auto engine = std::make_unique<usharing_dlp_node::SapPlanningEngine>();
+    auto transport =
+        std::make_unique<usharing_dlp_node::rscl::RsclPlanningTransport>(
+            rscl_config);
+    if (!service.Init(planning_config, std::move(engine),
+                      std::move(transport))) {
+      std::cerr << "failed to initialize planning service" << std::endl;
+      exit_code = 1;
+    } else {
+      service.Start();
+      // RSCL 订阅回调由 RSCL runtime 内部线程触发。这里的循环只负责保持进程
+      // 存活，并在收到 SIGINT/SIGTERM 后退出。
+      while (g_running) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+      service.Stop();
+    }
   }
-
-  service.Start();
-  // RSCL 订阅回调由 RSCL runtime 内部线程触发。这里的循环只负责保持进程
-  // 存活，并在收到 SIGINT/SIGTERM 后退出。
-  while (g_running) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
-  service.Stop();
   CRsclAccess::Instance()->release();
-  return 0;
+  return exit_code;
 }

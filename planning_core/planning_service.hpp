@@ -1,6 +1,6 @@
 // Ported from:
 //   adapter/perception_camera/resource/x86/config/pipeline/pilot_dlp_pipeline.yaml
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Wire transport callbacks to the sap planning engine without RSCL/SWCFL.
 //
@@ -14,9 +14,9 @@
 
 #include <memory>
 
-#include "core/planning_engine.hpp"
+#include "planning_core/planning_engine.hpp"
 #include "transport/transport.hpp"
-#include "core/vehicle_state_machine.hpp"
+#include "planning_core/vehicle_state_machine.hpp"
 
 namespace usharing_dlp_node {
 

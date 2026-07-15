@@ -1,6 +1,6 @@
 // Ported from:
 //   PerceptionCameraSdkWorkshop::OnVehicleInfo()
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Keep vehicle button/status state outside ROS and outside SWCFL Proxy.
 //
@@ -9,15 +9,15 @@
 //   - 从 chassis/vehicle report 更新自动驾驶状态、速度、接管状态；
 //   - 生成 sapManualSignal 给 SDK；
 //   - 维护 PerceptionPlanningInfo，供 PlanningDebug 输出携带车辆状态。
-//   该类只依赖 core/sap 类型，不能依赖 RSCL/ROS。
+//   该类只依赖 planning_core/planning_sap 类型，不能依赖 RSCL/ROS。
 #pragma once
 
 #include <atomic>
 #include <deque>
 #include <mutex>
 
-#include "core/diagnostics.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_core/diagnostics.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 

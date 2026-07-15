@@ -20,8 +20,8 @@ RSCL message
   -> transport/rscl/subscribers
   -> transport/rscl/converters
   -> sap* DTO
-  -> core/PlanningService
-  -> sap/SapPlanningEngine
+  -> planning_core/PlanningService
+  -> planning_sap/SapPlanningEngine
   -> sap_camera SDK
   -> sap planning output
   -> transport/rscl/converters
@@ -38,7 +38,7 @@ adapter/perception_camera/resource/thor/config/workshop/pilot_dlp_workshop.yaml
 adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 ```
 
-当前移植目录保留了 RSCL 作为通信边界，但 `core/` 和 `sap/` 不依赖 RSCL。
+当前移植目录保留了 RSCL 作为通信边界，但 `planning_core/` 和 `planning_sap/` 不依赖 RSCL。
 
 ## 2. 0434 链路对应关系
 
@@ -70,9 +70,9 @@ pipeline 中实际打开的链路。
 | --- | --- | --- |
 | `adapter/perception_camera/resource/x86/dag/pilot_dlp_x86.dag`、`adapter/perception_camera/resource/thor/dag/pilot_dlp.dag`、`adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` | `app/main_rscl.cpp` | 独立 RSCL 进程入口，替代 0434 DAG/SWCFL 组件启动编排 |
 | `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml`、`adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml`、`adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshopOption` | `config/rscl_config.*` | 读取 `sys_cfg`、`planning_cfg`、`topics_cfg`，对应旧 workshop/pipeline 配置 |
-| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的初始化/生命周期 | `sap/sap_planning_engine.*` | `sapCreate/init/start/stop` 和 `sapPush*`、`sapGet*` |
-| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnDataArrived()` 分发 | `core/planning_service.*` | 把 transport 回调接到 engine |
-| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnVehicleInfo()` | `core/vehicle_state_machine.*` | `VehicleInfo` 到 `sapManualSignal` 的跨帧状态逻辑 |
+| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的初始化/生命周期 | `planning_sap/sap_planning_engine.*` | `sapCreate/init/start/stop` 和 `sapPush*`、`sapGet*` |
+| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnDataArrived()` 分发 | `planning_core/planning_service.*` | 把 transport 回调接到 engine |
+| `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnVehicleInfo()` | `planning_core/vehicle_state_machine.*` | `VehicleInfo` 到 `sapManualSignal` 的跨帧状态逻辑 |
 | `adapter/perception_camera/src/convertors/perception/object_convertor.cpp` | `transport/rscl/converters/object_frame_converter.*`、`object_common.*` | 相机目标输入转换 |
 | `adapter/perception_camera/src/convertors/perception/fusion_object_convertor.cpp` | `transport/rscl/converters/fusion_object_frame_converter.*` | fusion 目标兼容转换，默认未启用 |
 | `adapter/perception_camera/src/convertors/perception/road_geometry_convertor.cpp` | `transport/rscl/converters/road_geometry_frame_converter.*` | 道路几何输入转换 |
@@ -99,8 +99,8 @@ pipeline 中实际打开的链路。
 | `app/` | 可执行程序入口，只做进程级组装和生命周期控制。允许依赖具体通信框架。 |
 | `common/` | 中立的时间和日志抽象，不依赖 ROS/RSCL/SWCFL。 |
 | `config/` | RSCL 版配置模型和 JSON 文件加载器，把原 DAG/SWCFL workshop 配置转换为 `PlanningConfig` 与 `RsclPortConfig`。 |
-| `core/` | planning 编排层。只处理 engine/transport 接口、车辆状态机、诊断状态和中立配置。 |
-| `sap/` | `sap_camera` SDK 适配层和 `sap*` 内存所有权封装。只处理 SDK DTO、SDK 生命周期和 `sapPush*`、`sapGet*`。 |
+| `planning_core/` | planning 编排层。只处理 engine/transport 接口、车辆状态机、诊断状态和中立配置。 |
+| `planning_sap/` | `sap_camera` SDK 适配层和 `sap*` 内存所有权封装。只处理 SDK DTO、SDK 生命周期和 `sapPush*`、`sapGet*`。 |
 | `sdk/` | 本地复制的 `sap_camera`、`sap_common` 头文件布局，以及预期放置 SDK 动态库的位置。不是本工程业务代码。 |
 | `transport/` | 通信抽象和具体通信实现。`transport/rscl` 负责 SenseAuto RSCL 输入输出；`transport/ros2` 是后续 ROS2 边界占位。 |
 | `resource/` | 运行配置、SDK pipeline prototxt、license、模型和车辆标定占位。 |
@@ -122,17 +122,19 @@ pipeline 中实际打开的链路。
 
 | 文件 | 作用 | 0434 对应部分 |
 | --- | --- | --- |
-| `CMakeLists.txt` | 定义 `core`、`sap`、SenseAuto converters、RSCL transport、RSCL app 等可选 target；配置 SDK、ADMsgIDL、RSCL、JsonCpp 依赖；提供 `USHARING_DLP_NODE_HAS_SAP_PUSH_LIDAR_GOP_FRAME` 开关。 | `CMakeLists.txt`、`adapter/perception_camera/CMakeLists.txt`、`.saphub/cmake/*` 的构建和安装逻辑。 |
+| `CMakeLists.txt` | 定义 `planning_core`、`planning_sap`、SenseAuto converters、RSCL transport、RSCL app、RSCL smoke app 等可选 target；配置 SDK、ADMsgIDL、RSCL、JsonCpp 依赖；提供 `USHARING_DLP_NODE_HAS_SAP_PUSH_LIDAR_GOP_FRAME` 开关。 | `CMakeLists.txt`、`adapter/perception_camera/CMakeLists.txt`、`.saphub/cmake/*` 的构建和安装逻辑。 |
 | `build.sh` | 本地构建脚本。默认构建 RSCL 静态库和 converter；如果本地存在 `libsap_camera.so`、`libsap_common.so`，自动打开 RSCL 可执行程序构建。 | 本工程新增；承接 0434 `Makefile`、`setup_env.sh` 和 `.saphub/saphub` 的本地构建入口职责。 |
 | `README.md` | 工程入口说明，指向本文档。 | 本工程新增；无 0434 源码对应。 |
 | `PROJECT_STRUCTURE.md` | 本文档，说明目录职责、源代码关系和文件作用。 | 本工程新增；依据 0434 `adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml`、`adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml`、`adapter/perception_camera/src/convertors/*` 和 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 整理。 |
 | `app/main_rscl.cpp` | RSCL 可执行程序入口。加载配置，初始化 `CRsclAccess`，组装 `PlanningService + SapPlanningEngine + RsclPlanningTransport`，处理进程退出信号。 | 本工程新增入口；对应 0434 `adapter/perception_camera/resource/{x86,thor}/dag/pilot_dlp*.dag`、`adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 和 `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml` 中的组件启动编排。 |
+| `app/main_rscl_smoke.cpp` | RSCL bag smoke 测试入口。使用 fake `IPlanningEngine` 统计 `Push*` 调用，只验证 RSCL 收包、converter 输出 sap DTO、`PlanningService` 传入 engine 接口，不加载真实 `sap_camera` runtime。 | 本工程新增测试入口；对应 0434 receiver -> convertor -> `PerceptionCameraSdkWorkshop::OnDataArrived()` 前半段链路。 |
+| `app/rscl_smoke_sap_stubs.cpp` | smoke 测试专用 sap DTO 初始化/释放 stub，避免仅验证消息链路时链接 `libsap_camera.so`、`libsap_common.so`。 | 本工程新增测试支撑；替代 0434 `adapter/perception_camera/src/convertors/*` 中依赖 SDK helper 的 DTO 分配/释放函数。 |
 
 ### 4.2 common
 
 | 文件 | 作用 | 0434 对应部分 |
 | --- | --- | --- |
-| `common/clock.hpp` | 中立时钟接口 `IClock` 和系统时钟实现。替代旧代码中散落的时间工具，避免 core/sap 直接依赖 RSCL 或 ROS 时间。 | `adapter/perception_camera/include/perception_camera_helper.hpp`、`adapter/perception_camera/include/utils/sys_time.hpp`、`adapter/perception_camera/src/utils/sys_time.cpp` 中的时间工具职责。 |
+| `common/clock.hpp` | 中立时钟接口 `IClock` 和系统时钟实现。替代旧代码中散落的时间工具，避免 `planning_core/planning_sap` 直接依赖 RSCL 或 ROS 时间。 | `adapter/perception_camera/include/perception_camera_helper.hpp`、`adapter/perception_camera/include/utils/sys_time.hpp`、`adapter/perception_camera/src/utils/sys_time.cpp` 中的时间工具职责。 |
 | `common/logger.hpp` | 中立日志接口 `ILogger` 和 stderr fallback 实现。`SapPlanningEngine` 通过它记录 SDK 生命周期和错误。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中的 `AD_SWCFL_*` 日志使用点；本工程改为中立接口。 |
 
 ### 4.3 config
@@ -142,26 +144,26 @@ pipeline 中实际打开的链路。
 | `config/rscl_config.hpp` | 定义 `TopicConfig`、`RsclPortConfig`、`JsonConfigLoader`。这是 RSCL 版本配置边界。 | 0434 无同名 JSON 配置类；对应 `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml` 的 topic/SDK 配置结构和 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshopOption`。 |
 | `config/rscl_config.cpp` | 读取 `resource/config/dlp_node/<platform>/{sys_cfg,planning_cfg,topics_cfg}`，解析 SDK 初始化参数和 RSCL topic，解析后把相对资源路径转换到模块根目录。 | 0434 `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml`、`adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 和 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp::PerceptionCameraSdkWorkshopOption::OnInit()` 的解析内容。 |
 
-### 4.4 core
+### 4.4 planning_core
 
 | 文件 | 作用 | 0434 对应部分 |
 | --- | --- | --- |
-| `core/config.hpp` | 定义中立 `PlanningConfig` 和 `PlanningPipelineConfig`，对应旧 `PerceptionCameraSdk` workshop 配置块。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshopOption`、`PipelineInfo`，以及 `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml` 的 `PerceptionCameraSdk` 配置块。 |
-| `core/diagnostics.hpp` | 定义 `FaultCodes`、`VehicleInfo`、`PerceptionPlanningInfo` 等 core 共享状态结构。 | `adapter/perception_camera/include/perception_camera_helper.hpp`、`adapter/perception_camera/include/perception_camera_dtc.hpp`、`adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中的车辆状态和故障状态字段。 |
-| `core/planning_engine.hpp` | 定义 `IPlanningEngine`，输入统一是 `sap*` 或 core DTO，输出通过回调交给 service。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 `PerceptionCameraSdkWorkshop` 对 `sap_camera` 的输入/输出边界。 |
-| `core/planning_service.hpp` | 定义 `PlanningService`，负责组合 engine 与 transport。 | `adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 的 `RunOnceSynchronizer -> PerceptionCameraSdk -> Prediction/DebugConvertor` 链路。 |
-| `core/planning_service.cpp` | 绑定 transport 输入回调到 `IPlanningEngine::PushXxx()`，绑定 engine 输出回调到 transport 发布函数；替代旧 workshop 图中的数据分发。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnDataArrived()` 分发逻辑，以及 `adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 的 successor 关系。 |
-| `core/vehicle_state_machine.hpp` | 声明车辆状态机，把 `VehicleInfo`、`sapChassisState` 转换/缓存为 planning 所需的 `sapManualSignal` 和 debug 状态。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnVehicleInfo()` 和 `sapManualSignal` 生成相关成员状态。 |
-| `core/vehicle_state_machine.cpp` | 实现旧 `OnVehicleInfo()` 中的自动驾驶状态、接管状态、灯光/拨杆状态、期望速度等跨帧逻辑。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp::OnVehicleInfo()`。 |
+| `planning_core/config.hpp` | 定义中立 `PlanningConfig` 和 `PlanningPipelineConfig`，对应旧 `PerceptionCameraSdk` workshop 配置块。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshopOption`、`PipelineInfo`，以及 `adapter/perception_camera/resource/{x86,thor}/config/workshop/pilot_dlp_workshop.yaml` 的 `PerceptionCameraSdk` 配置块。 |
+| `planning_core/diagnostics.hpp` | 定义 `FaultCodes`、`VehicleInfo`、`PerceptionPlanningInfo` 等 planning core 共享状态结构。 | `adapter/perception_camera/include/perception_camera_helper.hpp`、`adapter/perception_camera/include/perception_camera_dtc.hpp`、`adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中的车辆状态和故障状态字段。 |
+| `planning_core/planning_engine.hpp` | 定义 `IPlanningEngine`，输入统一是 `sap*` 或 planning core DTO，输出通过回调交给 service。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 `PerceptionCameraSdkWorkshop` 对 `sap_camera` 的输入/输出边界。 |
+| `planning_core/planning_service.hpp` | 定义 `PlanningService`，负责组合 engine 与 transport。 | `adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 的 `RunOnceSynchronizer -> PerceptionCameraSdk -> Prediction/DebugConvertor` 链路。 |
+| `planning_core/planning_service.cpp` | 绑定 transport 输入回调到 `IPlanningEngine::PushXxx()`，绑定 engine 输出回调到 transport 发布函数；替代旧 workshop 图中的数据分发。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnDataArrived()` 分发逻辑，以及 `adapter/perception_camera/resource/{x86,thor}/config/pipeline/pilot_dlp_pipeline.yaml` 的 successor 关系。 |
+| `planning_core/vehicle_state_machine.hpp` | 声明车辆状态机，把 `VehicleInfo`、`sapChassisState` 转换/缓存为 planning 所需的 `sapManualSignal` 和 debug 状态。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `OnVehicleInfo()` 和 `sapManualSignal` 生成相关成员状态。 |
+| `planning_core/vehicle_state_machine.cpp` | 实现旧 `OnVehicleInfo()` 中的自动驾驶状态、接管状态、灯光/拨杆状态、期望速度等跨帧逻辑。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp::OnVehicleInfo()`。 |
 
-### 4.5 sap
+### 4.5 planning_sap
 
 | 文件 | 作用 | 0434 对应部分 |
 | --- | --- | --- |
-| `sap/sap_types.hpp` | 集中定义 `SapObjectFramePtr`、`SapRoadFramePtr` 等 `sap*` shared_ptr 别名和工厂/释放函数声明。所有 transport/converter 都以这里的类型向 core 交付数据。 | `adapter/perception_camera/include/perception_camera_proxy_traits.hpp` 中的 proxy 类型约定，以及 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中实际消费的 `sap*` DTO。 |
-| `sap/sap_raii.cpp` | 实现 `sap*` 输入和 SDK 输出的 RAII 释放规则，包括 ObjectFrame、LidarGOP、OCC、PlanningFrame、PlanningDebugInfo 的内存释放。 | `adapter/perception_camera/src/convertors/{perception,planning}/*_convertor.cpp` 的 `new/delete` 释放逻辑，以及 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 SDK 输出释放职责。 |
-| `sap/sap_planning_engine.hpp` | 声明 `SapPlanningEngine`，是 `IPlanningEngine` 的 `sap_camera` SDK 实现。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshop` 类和 `sap_camera` API 边界。 |
-| `sap/sap_planning_engine.cpp` | 管理 `sap_camera` 生命周期，填充 `sapCameraParam`，注册 SDK 回调，调用 `sapPush*` 输入 SDK，并通过 `sapGetPlanningFrame`、`sapGetPlanningDebugInfo` 拉取输出。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 `OnInit()`、SDK callback 注册、`OnDataArrived()`、`sapPush*`、`sapGetPlanningFrame()` 和 `sapGetPlanningDebugInfo()` 调用。 |
+| `planning_sap/sap_types.hpp` | 集中定义 `SapObjectFramePtr`、`SapRoadFramePtr` 等 `sap*` shared_ptr 别名和工厂/释放函数声明。所有 transport/converter 都以这里的类型向 `planning_core` 交付数据。 | `adapter/perception_camera/include/perception_camera_proxy_traits.hpp` 中的 proxy 类型约定，以及 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中实际消费的 `sap*` DTO。 |
+| `planning_sap/sap_raii.cpp` | 实现 `sap*` 输入和 SDK 输出的 RAII 释放规则，包括 ObjectFrame、LidarGOP、OCC、PlanningFrame、PlanningDebugInfo 的内存释放。 | `adapter/perception_camera/src/convertors/{perception,planning}/*_convertor.cpp` 的 `new/delete` 释放逻辑，以及 `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 SDK 输出释放职责。 |
+| `planning_sap/sap_planning_engine.hpp` | 声明 `SapPlanningEngine`，是 `IPlanningEngine` 的 `sap_camera` SDK 实现。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 的 `PerceptionCameraSdkWorkshop` 类和 `sap_camera` API 边界。 |
+| `planning_sap/sap_planning_engine.cpp` | 管理 `sap_camera` 生命周期，填充 `sapCameraParam`，注册 SDK 回调，调用 `sapPush*` 输入 SDK，并通过 `sapGetPlanningFrame`、`sapGetPlanningDebugInfo` 拉取输出。 | `adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp` 中 `OnInit()`、SDK callback 注册、`OnDataArrived()`、`sapPush*`、`sapGetPlanningFrame()` 和 `sapGetPlanningDebugInfo()` 调用。 |
 
 注意：当前本地 `sap_camera.h` 没有声明 `sapPushLidarGopFrame`，代码默认保留
 Lidar GOP 输入链路但不强行链接该符号。使用匹配 0434 的 SDK 动态库和头文件时，

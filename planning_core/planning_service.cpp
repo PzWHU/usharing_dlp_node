@@ -1,14 +1,52 @@
 // Ported from:
 //   adapter/perception_camera/resource/x86/config/pipeline/pilot_dlp_pipeline.yaml
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Replace SWCFL pipeline wiring with explicit middleware-neutral callbacks.
 
-#include "core/planning_service.hpp"
+#include "planning_core/planning_service.hpp"
 
 #include <utility>
 
 namespace usharing_dlp_node {
+namespace {
+
+void ClearEngineCallbacks(IPlanningEngine* engine) {
+  if (engine == nullptr) {
+    return;
+  }
+  engine->on_prediction = nullptr;
+  engine->on_debug = nullptr;
+  engine->on_diag = nullptr;
+}
+
+void ClearTransportCallbacks(IPlanningTransport* transport) {
+  if (transport == nullptr) {
+    return;
+  }
+  transport->on_object = nullptr;
+  transport->on_road = nullptr;
+  transport->on_fusion_object = nullptr;
+  transport->on_lidar_gop = nullptr;
+  transport->on_occ = nullptr;
+  transport->on_local_localization = nullptr;
+  transport->on_location_info = nullptr;
+  transport->on_vehicle_info = nullptr;
+  transport->on_sdmap = nullptr;
+  transport->on_manual_signal = nullptr;
+  transport->on_cross_info = nullptr;
+  transport->on_road_structure = nullptr;
+  transport->on_navi_topo = nullptr;
+  transport->on_chassis_state = nullptr;
+  transport->on_amap_navi_info = nullptr;
+}
+
+void ClearCallbacks(IPlanningEngine* engine, IPlanningTransport* transport) {
+  ClearEngineCallbacks(engine);
+  ClearTransportCallbacks(transport);
+}
+
+}  // namespace
 
 bool PlanningService::Init(const PlanningConfig& config,
                            std::unique_ptr<IPlanningEngine> engine,
@@ -40,9 +78,7 @@ bool PlanningService::Init(const PlanningConfig& config,
   };
 
   // 输入回调绑定：transport 已经完成“中间件消息 -> sap*”转换，
-  // 这里仅负责把内部 DTO 移交给 engine，对应旧代码中的 OnDataArrived()
-  // 分发逻辑。参数名使用 object_frame/road_frame 等，避免把 sap* 误解为
-  // 原始 RSCL message。
+  // 这里仅负责把内部数据传输对象移交给 engine，对应旧代码中的 OnDataArrived()分发逻辑
   transport_->on_object = [this](SapObjectFramePtr object_frame) {
     if (engine_) engine_->PushObject(std::move(object_frame));
   };
@@ -121,7 +157,17 @@ bool PlanningService::Init(const PlanningConfig& config,
 
   // 先初始化 SDK，再注册/启动订阅。RSCL subscribe 后可能立即触发回调，
   // 该顺序可以保证输入到来时 sap_camera handle 已经可用。
-  return engine_->Init(config) && transport_->Init();
+  if (!engine_->Init(config)) {
+    ClearCallbacks(engine_.get(), transport_.get());
+    return false;
+  }
+  if (!transport_->Init()) {
+    transport_->Stop();
+    engine_->Stop();
+    ClearCallbacks(engine_.get(), transport_.get());
+    return false;
+  }
+  return true;
 }
 
 void PlanningService::Start() {
@@ -139,6 +185,7 @@ void PlanningService::Stop() {
   if (engine_) {
     engine_->Stop();
   }
+  ClearCallbacks(engine_.get(), transport_.get());
 }
 
 }  // namespace usharing_dlp_node

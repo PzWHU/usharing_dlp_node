@@ -1,10 +1,10 @@
 // Ported from:
 //   PerceptionCameraSdkWorkshop::PublishPlanning()
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Keep SDK-owned planning output memory release rules in one place.
 
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 #include <cstddef>
 #include <cstdint>

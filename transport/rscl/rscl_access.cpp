@@ -47,8 +47,9 @@ int CRsclAccess::release() {
   publishers_.clear();
 
   if (runtime_ != nullptr) {
+    // GetCurRuntime()/Runtime::Instance() 返回 RSCL 内部 shared_ptr 单例管理的
+    // 对象，本封装只借用指针，不能 delete。
     runtime_->Shutdown();
-    delete runtime_;
     runtime_ = nullptr;
   }
   return 0;

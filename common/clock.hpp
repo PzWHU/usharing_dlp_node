@@ -9,7 +9,7 @@
 
 namespace usharing_dlp_node {
 
-// 中间件无关时间接口。core/sap 层只能依赖该接口或 SystemClock，
+// 中间件无关时间接口。planning_core/planning_sap 层只能依赖该接口或 SystemClock，
 // 不能直接调用 ROS/RSCL 的时间 API。
 class IClock {
  public:

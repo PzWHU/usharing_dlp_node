@@ -4,15 +4,15 @@
 //   Replace RSCL Receiver/Sender workshops with a middleware-neutral transport.
 //
 // 中文说明：
-//   IPlanningTransport 是 core 层看到的通信抽象。它把所有输入都暴露为 sap*
+//   IPlanningTransport 是 planning_core 层看到的通信抽象。它把所有输入都暴露为 sap*
 //   或 core 内部小结构体，不把 RSCL/ROS 消息类型泄漏到 PlanningService。
 //   新增 ROS 或其他中间件时，应实现同一接口并复用 PlanningService/SapPlanningEngine。
 #pragma once
 
 #include <functional>
 
-#include "core/diagnostics.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_core/diagnostics.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 

@@ -2,7 +2,7 @@
 //   PerceptionCameraSdkWorkshop::InitSapCamera()
 //   PerceptionCameraSdkWorkshop::OnDataArrived()
 //   PerceptionCameraSdkWorkshop::PublishPlanning()
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Wrap sap_camera planning SDK without RSCL/SWCFL or ROS dependencies.
 //
@@ -15,12 +15,14 @@
 //   本层不处理 RSCL/ROS 消息，只管理 SDK 生命周期、输入 push 和输出 get。
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <string>
 
 #include "common/clock.hpp"
 #include "common/logger.hpp"
-#include "core/planning_engine.hpp"
+#include "planning_core/planning_engine.hpp"
 
 namespace usharing_dlp_node {
 
@@ -89,7 +91,10 @@ class SapPlanningEngine final : public IPlanningEngine {
   std::string planning_module_name_{"planning"};
   std::string planning_camera_name_{"nv_cameras"};
   PerceptionPlanningInfo planning_info_;
-  bool running_{false};
+  std::atomic_bool running_{false};
+  std::condition_variable active_callback_cv_;
+  int active_callbacks_{0};
+  bool stopping_callbacks_{false};
 };
 
 }  // namespace usharing_dlp_node

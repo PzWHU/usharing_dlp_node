@@ -8,7 +8,7 @@
 
 #include <ad_msg_idl/ad_navi/Amap_navi_msgs.capnp.h>
 
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

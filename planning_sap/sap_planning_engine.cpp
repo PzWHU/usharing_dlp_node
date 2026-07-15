@@ -4,12 +4,12 @@
 //   PerceptionCameraSdkWorkshop::OnDataArrived()
 //   PerceptionCameraSdkWorkshop::PublishResults()
 //   PerceptionCameraSdkWorkshop::PublishPlanning()
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Keep the sap_camera planning SDK lifecycle and push/get API behind a
 //   middleware-neutral engine interface.
 
-#include "sap/sap_planning_engine.hpp"
+#include "planning_sap/sap_planning_engine.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -64,6 +64,8 @@ bool SapPlanningEngine::Init(const PlanningConfig& config) {
           "sap_camera callbacks are process-global; another engine is active");
       return false;
     }
+    stopping_callbacks_ = false;
+    active_callbacks_ = 0;
     active_instance_ = this;
   }
 
@@ -97,28 +99,36 @@ bool SapPlanningEngine::Init(const PlanningConfig& config) {
     return false;
   }
 
-  running_ = true;
+  running_.store(true);
   Log(LogLevel::kInfo, "SapPlanningEngine::Init",
       "sap_camera planning SDK started");
   return true;
 }
 
 void SapPlanningEngine::Stop() {
+  {
+    std::unique_lock<std::mutex> lock(active_mutex_);
+    if (active_instance_ == this) {
+      // SDK C 回调没有 this 参数。先阻止新的输出回调进入，并等待已经
+      // 进入 HandlePublishResult() 的回调退出，再销毁 sapCameraHandle。
+      stopping_callbacks_ = true;
+      active_callback_cv_.wait(lock, [this]() {
+        return active_callbacks_ == 0;
+      });
+      active_instance_ = nullptr;
+    }
+  }
+
+  const bool was_running = running_.exchange(false);
   if (camera_handle_ != nullptr) {
     // 生命周期顺序保持和旧 PerceptionCameraSdkWorkshop::DeInitSapCamera()
     // 一致：stop -> deinit -> destroy。
-    if (running_) {
+    if (was_running) {
       IsSuccess(sapStop(camera_handle_), "SapPlanningEngine::sapStop");
     }
     IsSuccess(sapDeinit(camera_handle_), "SapPlanningEngine::sapDeinit");
     IsSuccess(sapDestroy(&camera_handle_), "SapPlanningEngine::sapDestroy");
     camera_handle_ = nullptr;
-  }
-  running_ = false;
-
-  std::lock_guard<std::mutex> lock(active_mutex_);
-  if (active_instance_ == this) {
-    active_instance_ = nullptr;
   }
 }
 
@@ -307,14 +317,25 @@ int SapPlanningEngine::PublishResultCallback(
   SapPlanningEngine* engine = nullptr;
   {
     std::lock_guard<std::mutex> lock(active_mutex_);
+    engine = active_instance_;
+    if (engine == nullptr || engine->stopping_callbacks_) {
+      return -1;
+    }
+    ++engine->active_callbacks_;
     // C 回调转回 C++ 对象方法。这里不持锁调用 HandlePublishResult，
     // 避免 SDK 回调处理过程中阻塞 Stop()/析构对 active_instance_ 的清理。
-    engine = active_instance_;
   }
-  if (engine == nullptr) {
-    return -1;
+
+  const bool ok = engine->HandlePublishResult(*result);
+
+  {
+    std::lock_guard<std::mutex> lock(active_mutex_);
+    --engine->active_callbacks_;
+    if (engine->stopping_callbacks_ && engine->active_callbacks_ == 0) {
+      engine->active_callback_cv_.notify_all();
+    }
   }
-  return engine->HandlePublishResult(*result) ? kSapSuccess : -1;
+  return ok ? kSapSuccess : -1;
 }
 
 int SapPlanningEngine::NotifyPipelineStatusCallback(
@@ -425,7 +446,7 @@ bool SapPlanningEngine::PublishPlanning(
 }
 
 bool SapPlanningEngine::IsRunning(const char* scope) const {
-  if (!running_ || camera_handle_ == nullptr) {
+  if (!running_.load() || camera_handle_ == nullptr) {
     Log(LogLevel::kError, scope, "sap_camera handle is not running");
     return false;
   }

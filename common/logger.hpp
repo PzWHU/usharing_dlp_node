@@ -1,5 +1,5 @@
 // Ported from:
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Replace AD_SWCFL_* logging with a middleware-neutral logging facade.
 #pragma once

@@ -10,7 +10,7 @@
 
 #include <ad_msg_idl/l2plus_maplesslm/maplesslm_msgs.capnp.h>
 
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

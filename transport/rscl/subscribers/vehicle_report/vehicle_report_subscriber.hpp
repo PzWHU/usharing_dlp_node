@@ -14,7 +14,7 @@
 
 #include "config/rscl_config.hpp"
 #include "transport/rscl/converters/vehicle_report_converter.hpp"
-#include "core/diagnostics.hpp"
+#include "planning_core/diagnostics.hpp"
 
 namespace usharing_dlp_node {
 namespace rscl {

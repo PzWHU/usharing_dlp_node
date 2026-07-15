@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

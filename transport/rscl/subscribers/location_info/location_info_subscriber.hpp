@@ -14,7 +14,7 @@
 #include <ad_rscl/ad_rscl.h>
 
 #include "config/rscl_config.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace rscl {

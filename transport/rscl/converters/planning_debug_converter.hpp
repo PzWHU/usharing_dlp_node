@@ -8,8 +8,8 @@
 
 #include <ad_msg_idl/perception/perception.capnp.h>
 
-#include "core/diagnostics.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_core/diagnostics.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

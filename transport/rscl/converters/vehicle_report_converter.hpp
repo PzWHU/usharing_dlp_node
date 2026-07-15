@@ -8,7 +8,7 @@
 
 #include <ad_msg_idl/ad_vehicle/vehicle.capnp.h>
 
-#include "core/diagnostics.hpp"
+#include "planning_core/diagnostics.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

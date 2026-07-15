@@ -1,10 +1,10 @@
 // Ported from:
 //   PerceptionCameraSdkWorkshop::OnVehicleInfo()
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Preserve DLP manual-signal behavior without SWCFL Proxy or ROS dependencies.
 
-#include "core/vehicle_state_machine.hpp"
+#include "planning_core/vehicle_state_machine.hpp"
 
 #include <cmath>
 

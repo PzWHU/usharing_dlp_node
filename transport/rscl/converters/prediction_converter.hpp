@@ -9,7 +9,7 @@
 #include <ad_msg_idl/ad_prediction/prediction.capnp.h>
 
 #include "transport/rscl/converters/output_sequence_state.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 namespace senseauto {

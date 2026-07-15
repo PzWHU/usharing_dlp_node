@@ -15,7 +15,7 @@ namespace usharing_dlp_node {
 namespace ros2 {
 
 // ROS2 transport 占位实现。ROS 相关 include 只能出现在本目录和未来
-// main_ros2.cpp/ROS converter 中，不能扩散到 core/sap 层。
+// main_ros2.cpp/ROS converter 中，不能扩散到 planning_core/planning_sap 层。
 class Ros2PlanningTransport final : public IPlanningTransport {
  public:
   // node 由 app 层创建并注入，方便后续在同一进程中组合多个 transport。

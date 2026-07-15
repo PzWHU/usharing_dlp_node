@@ -35,148 +35,138 @@ bool RsclPlanningTransport::InitSubscribers() {
   auto should_subscribe = [](const TopicConfig& topic) {
     return !topic.topic.empty();
   };
+  auto init_subscriber = [&should_subscribe](auto& subscriber,
+                                             const TopicConfig& topic,
+                                             auto callback) {
+    subscriber.SetParam(topic);
+    subscriber.SetCallback(std::move(callback));
+    return !should_subscribe(topic) || subscriber.Init();
+  };
 
   // subscriber 层只关心“从哪个 RSCL topic 接收什么消息”；收到原始消息后
   // 立即调用对应 converter 转成 sap*，再通过 IPlanningTransport 回调上抛。
-  object_frame_subscriber_.SetParam(config_.object_frame);
-  object_frame_subscriber_.SetCallback([this](SapObjectFramePtr object_frame) {
-    if (on_object) {
-      on_object(std::move(object_frame));
-    }
-  });
-  if (should_subscribe(config_.object_frame) &&
-      !object_frame_subscriber_.Init()) {
+  if (!init_subscriber(
+          object_frame_subscriber_, config_.object_frame,
+          [this](SapObjectFramePtr object_frame) {
+            if (on_object) {
+              on_object(std::move(object_frame));
+            }
+          })) {
     return false;
   }
 
-  road_geometry_frame_subscriber_.SetParam(config_.road_geometry_frame);
-  road_geometry_frame_subscriber_.SetCallback([this](SapRoadFramePtr road_frame) {
-    if (on_road) {
-      on_road(std::move(road_frame));
-    }
-  });
-  if (should_subscribe(config_.road_geometry_frame) &&
-      !road_geometry_frame_subscriber_.Init()) {
+  if (!init_subscriber(
+          road_geometry_frame_subscriber_, config_.road_geometry_frame,
+          [this](SapRoadFramePtr road_frame) {
+            if (on_road) {
+              on_road(std::move(road_frame));
+            }
+          })) {
     return false;
   }
 
-  fusion_object_frame_subscriber_.SetParam(config_.fusion_object_frame);
-  fusion_object_frame_subscriber_.SetCallback(
-      [this](SapFusionObjectFramePtr fusion_frame) {
-        if (on_fusion_object) {
-          on_fusion_object(std::move(fusion_frame));
-        }
-      });
-  if (should_subscribe(config_.fusion_object_frame) &&
-      !fusion_object_frame_subscriber_.Init()) {
+  if (!init_subscriber(
+          fusion_object_frame_subscriber_, config_.fusion_object_frame,
+          [this](SapFusionObjectFramePtr fusion_frame) {
+            if (on_fusion_object) {
+              on_fusion_object(std::move(fusion_frame));
+            }
+          })) {
     return false;
   }
 
-  lidar_gop_frame_subscriber_.SetParam(config_.lidar_gop_frame);
-  lidar_gop_frame_subscriber_.SetCallback(
-      [this](SapLidarGopFramePtr lidar_gop_frame, uint64_t timestamp_ns) {
-        if (on_lidar_gop) {
-          on_lidar_gop(std::move(lidar_gop_frame), timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.lidar_gop_frame) &&
-      !lidar_gop_frame_subscriber_.Init()) {
+  if (!init_subscriber(
+          lidar_gop_frame_subscriber_, config_.lidar_gop_frame,
+          [this](SapLidarGopFramePtr lidar_gop_frame, uint64_t timestamp_ns) {
+            if (on_lidar_gop) {
+              on_lidar_gop(std::move(lidar_gop_frame), timestamp_ns);
+            }
+          })) {
     return false;
   }
 
-  occupancy_info_subscriber_.SetParam(config_.occupancy_info);
-  occupancy_info_subscriber_.SetCallback([this](SapOccFramePtr occ_frame) {
-    if (on_occ) {
-      on_occ(std::move(occ_frame));
-    }
-  });
-  if (should_subscribe(config_.occupancy_info) &&
-      !occupancy_info_subscriber_.Init()) {
+  if (!init_subscriber(
+          occupancy_info_subscriber_, config_.occupancy_info,
+          [this](SapOccFramePtr occ_frame) {
+            if (on_occ) {
+              on_occ(std::move(occ_frame));
+            }
+          })) {
     return false;
   }
 
-  local_localization_subscriber_.SetParam(config_.local_localization);
-  local_localization_subscriber_.SetCallback(
-      [this](SapLocalLocalizationPtr local_pose) {
-        if (on_local_localization) {
-          on_local_localization(std::move(local_pose));
-        }
-      });
-  if (should_subscribe(config_.local_localization) &&
-      !local_localization_subscriber_.Init()) {
+  if (!init_subscriber(
+          local_localization_subscriber_, config_.local_localization,
+          [this](SapLocalLocalizationPtr local_pose) {
+            if (on_local_localization) {
+              on_local_localization(std::move(local_pose));
+            }
+          })) {
     return false;
   }
 
-  location_info_subscriber_.SetParam(config_.location_info);
-  location_info_subscriber_.SetCallback(
-      [this](SapLocationInfoPtr location_info, uint64_t timestamp_ns) {
-        if (on_location_info) {
-          on_location_info(std::move(location_info), timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.location_info) &&
-      !location_info_subscriber_.Init()) {
+  if (!init_subscriber(
+          location_info_subscriber_, config_.location_info,
+          [this](SapLocationInfoPtr location_info, uint64_t timestamp_ns) {
+            if (on_location_info) {
+              on_location_info(std::move(location_info), timestamp_ns);
+            }
+          })) {
     return false;
   }
 
-  vehicle_report_subscriber_.SetParam(config_.vehicle_report);
-  vehicle_report_subscriber_.SetCallback(
-      [this](const VehicleInfo& vehicle_info, uint64_t timestamp_ns) {
-        if (on_vehicle_info) {
-          on_vehicle_info(vehicle_info, timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.vehicle_report) &&
-      !vehicle_report_subscriber_.Init()) {
+  if (!init_subscriber(
+          vehicle_report_subscriber_, config_.vehicle_report,
+          [this](const VehicleInfo& vehicle_info, uint64_t timestamp_ns) {
+            if (on_vehicle_info) {
+              on_vehicle_info(vehicle_info, timestamp_ns);
+            }
+          })) {
     return false;
   }
 
-  vehicle_processing_subscriber_.SetParam(config_.vehicle_processing);
-  vehicle_processing_subscriber_.SetCallback(
-      [this](SapChassisStatePtr chassis_state, uint64_t timestamp_ns) {
-        if (on_chassis_state) {
-          on_chassis_state(std::move(chassis_state), timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.vehicle_processing) &&
-      !vehicle_processing_subscriber_.Init()) {
+  if (!init_subscriber(
+          vehicle_processing_subscriber_, config_.vehicle_processing,
+          [this](SapChassisStatePtr chassis_state, uint64_t timestamp_ns) {
+            if (on_chassis_state) {
+              on_chassis_state(std::move(chassis_state), timestamp_ns);
+            }
+          })) {
     return false;
   }
 
-  scene_navi_map_subscriber_.SetParam(config_.scene_navi_map);
-  scene_navi_map_subscriber_.SetCallback(
-      [this](
-          subscribers::SceneNaviMapSubscriber::ConvertedSceneNaviMap map_data) {
-        // 旧 pipeline 中 SceneNaviMap 一路输入被多个 convertor 拆成
-        // SDMap、RoadStructure、CrossInfo、NaviTopo 多路 sap* 输入。
-        if (on_sdmap) {
-          on_sdmap(std::move(map_data.sdmap), map_data.timestamp_ns);
-        }
-        if (on_road_structure) {
-          on_road_structure(std::move(map_data.road_structure),
+  if (!init_subscriber(
+          scene_navi_map_subscriber_, config_.scene_navi_map,
+          [this](
+              subscribers::SceneNaviMapSubscriber::ConvertedSceneNaviMap map_data) {
+            // 旧 pipeline 中 SceneNaviMap 一路输入被多个 convertor 拆成
+            // SDMap、RoadStructure、CrossInfo、NaviTopo 多路 sap* 输入。
+            if (on_sdmap) {
+              on_sdmap(std::move(map_data.sdmap), map_data.timestamp_ns);
+            }
+            if (on_road_structure) {
+              on_road_structure(std::move(map_data.road_structure),
+                                map_data.timestamp_ns);
+            }
+            if (on_cross_info) {
+              on_cross_info(std::move(map_data.cross_info),
                             map_data.timestamp_ns);
-        }
-        if (on_cross_info) {
-          on_cross_info(std::move(map_data.cross_info), map_data.timestamp_ns);
-        }
-        if (on_navi_topo) {
-          on_navi_topo(std::move(map_data.navi_topo), map_data.timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.scene_navi_map) &&
-      !scene_navi_map_subscriber_.Init()) {
+            }
+            if (on_navi_topo) {
+              on_navi_topo(std::move(map_data.navi_topo),
+                           map_data.timestamp_ns);
+            }
+          })) {
     return false;
   }
 
-  amap_navi_info_subscriber_.SetParam(config_.amap_navi_info);
-  amap_navi_info_subscriber_.SetCallback(
-      [this](SapAmapNaviInfoPtr amap_navi_info, uint64_t timestamp_ns) {
-        if (on_amap_navi_info) {
-          on_amap_navi_info(std::move(amap_navi_info), timestamp_ns);
-        }
-      });
-  if (should_subscribe(config_.amap_navi_info) &&
-      !amap_navi_info_subscriber_.Init()) {
+  if (!init_subscriber(
+          amap_navi_info_subscriber_, config_.amap_navi_info,
+          [this](SapAmapNaviInfoPtr amap_navi_info, uint64_t timestamp_ns) {
+            if (on_amap_navi_info) {
+              on_amap_navi_info(std::move(amap_navi_info), timestamp_ns);
+            }
+          })) {
     return false;
   }
 

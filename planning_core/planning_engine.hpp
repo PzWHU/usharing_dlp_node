@@ -1,10 +1,10 @@
 // Ported from:
-//   adapter/perception_camera/src/workshops/perception_camera/perception_camera_sdk_workshop.cpp
+//   adapter/perception_camera/src/workshops/perception/perception_camera_sdk_workshop.cpp
 // Purpose:
 //   Middleware-neutral engine boundary around sap_camera planning SDK.
 //
 // 中文说明：
-//   IPlanningEngine 是 core 层看到的算法引擎抽象。输入统一使用 sap* DTO，
+//   IPlanningEngine 是 planning_core 层看到的算法引擎抽象。输入统一使用 sap* DTO，
 //   当前实现是 SapPlanningEngine，内部调用 sap_camera SDK 的 sapPush* API。
 //   后续如果替换算法库，只需要实现该接口，PlanningService/transport 不需要变。
 #pragma once
@@ -12,9 +12,9 @@
 #include <functional>
 #include <memory>
 
-#include "core/config.hpp"
-#include "core/diagnostics.hpp"
-#include "sap/sap_types.hpp"
+#include "planning_core/config.hpp"
+#include "planning_core/diagnostics.hpp"
+#include "planning_sap/sap_types.hpp"
 
 namespace usharing_dlp_node {
 

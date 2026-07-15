@@ -13,7 +13,7 @@
 
 #include <string>
 
-#include "core/config.hpp"
+#include "planning_core/config.hpp"
 
 namespace usharing_dlp_node {
 
@@ -55,6 +55,8 @@ class JsonConfigLoader {
   // config_dir 可以是绝对路径，也可以是 resource/config/dlp_node/<platform>。
   bool Load(const std::string& config_dir, PlanningConfig* planning_config,
             RsclPortConfig* rscl_config) const;
+  bool Load(const std::string& config_dir, PlanningConfig* planning_config,
+            RsclPortConfig* rscl_config, std::string* error) const;
 
  private:
   static std::string NormalizeConfigDir(const std::string& config_dir);
